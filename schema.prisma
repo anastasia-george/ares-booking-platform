@@ -1,0 +1,148 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// 1. Users & Auth
+// -----------------------------------------------------------------------------
+
+enum UserRole {
+  CUSTOMER
+  BUSINESS_OWNER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  phone     String?  // vital for SMS notifications
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  businesses Business[] // If they own businesses
+  bookings   Booking[]  // If they are a customer
+  reviews    Review[]
+}
+
+// -----------------------------------------------------------------------------
+// 2. Business & Services
+// -----------------------------------------------------------------------------
+
+model Business {
+  id          String   @id @default(uuid())
+  ownerId     String
+  name        String
+  description String?
+  slug        String   @unique // for friendly URLs
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  services Service[]
+  slots    Availability[]
+  bookings Booking[]
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  businessId  String
+  name        String
+  description String?
+  price       Int      // Store in cents
+  durationMin Int      // e.g., 60
+  bufferMin   Int      @default(15) // Time after service to clean up
+  isActive    Boolean  @default(true)
+
+  business Business  @relation(fields: [businessId], references: [id])
+  bookings Booking[]
+}
+
+// -----------------------------------------------------------------------------
+// 3. Availability (The Logic)
+// -----------------------------------------------------------------------------
+
+// Simple weekly schedule (recurring)
+// For specific overrides, we'd need a separate Overrides table or more complex logic
+model Availability {
+  id          String @id @default(uuid())
+  businessId  String
+  dayOfWeek   Int    // 0=Sun, 1=Mon, etc.
+  startTime   String // "09:00"
+  endTime     String // "17:00"
+  
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// 4. Bookings (The Core)
+// -----------------------------------------------------------------------------
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED_BY_USER
+  CANCELLED_BY_BUSINESS
+  COMPLETED
+  NO_SHOW
+  DISPUTED
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  userId     String
+  businessId String
+  serviceId  String
+  
+  startTime  DateTime      // stored in UTC
+  endTime    DateTime      // stored in UTC
+  status     BookingStatus @default(PENDING)
+  
+  // Payment info
+  paymentId     String? // Stripe Intent ID
+  paymentStatus String? // "paid", "authorized", "refunded"
+  price         Int     // Snapshot of price at booking time
+
+  notes      String?
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  business Business @relation(fields: [businessId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// 5. Trust & Logs
+// -----------------------------------------------------------------------------
+
+model Review {
+  id         String   @id @default(uuid())
+  bookingId  String   @unique
+  userId     String
+  rating     Int      // 1-5
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // "BOOKING_CREATED", "STATUS_CHANGE"
+  entityId  String   // ID of the booking/user affected
+  actorId   String?  // Who did it (User or System)
+  details   Json?    // Snapshot of changes
+  createdAt DateTime @default(now())
+}
