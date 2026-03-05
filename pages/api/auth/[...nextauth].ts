@@ -35,7 +35,8 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     }
-  }
+  },
+  debug: true, // DEBUG MODE: Logs detailed errors to Vercel logs
 };
 
 export default NextAuth(authOptions);
