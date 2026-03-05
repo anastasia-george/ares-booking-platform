@@ -1,6 +1,6 @@
 // pages/api/availability/index.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { AvailabilityManager } from '../../../business-availability';
+import { AvailabilityManager } from '../../business-availability';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

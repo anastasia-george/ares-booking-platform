@@ -1,8 +1,8 @@
 // pages/api/chat.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ModelInput, ModelOutput } from '../../../ai-contract';
-import { BookingEngine } from '../../../booking-engine';
-import { AvailabilityManager } from '../../../business-availability';
+import { ModelInput, ModelOutput } from '../../ai-contract';
+import { BookingEngine } from '../../booking-engine';
+import { AvailabilityManager } from '../../business-availability';
 // You'll need an LLM client (e.g., OpenAI/Anthropic SDK)
 import { OpenAI } from 'openai';
 
