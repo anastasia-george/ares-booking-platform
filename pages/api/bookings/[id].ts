@@ -1,7 +1,7 @@
 // pages/api/bookings/[id].ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { BookingEngine } from '../../booking-engine';
-import { PaymentManager } from '../../stripe-payments';
+import { BookingEngine } from '../../../booking-engine';
+import { PaymentManager } from '../../../stripe-payments';
 import { PrismaClient, BookingStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();

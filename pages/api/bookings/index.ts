@@ -2,9 +2,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
-import { BookingEngine } from '../../booking-engine';
-import { AvailabilityManager } from '../../business-availability';
-import { TrustSafetyManager } from '../../trust-safety';
+import { BookingEngine } from '../../../booking-engine';
+import { AvailabilityManager } from '../../../business-availability';
+import { TrustSafetyManager } from '../../../trust-safety';
 
 // Instantiate our managers
 const bookingEngine = new BookingEngine();
