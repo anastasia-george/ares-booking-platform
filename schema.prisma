@@ -28,7 +28,7 @@ model User {
   role      UserRole @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Auth Fields (NextAuth)
   emailVerified DateTime?
   image         String?
@@ -36,25 +36,27 @@ model User {
   sessions      Session[]
 
   // Relations
-  businesses Business[] // If they own businesses
-  bookings   Booking[]  // If they are a customer
-  reviews    Review[]
+  businesses       Business[]        // If they own businesses
+  bookings         Booking[]         // If they are a customer
+  reviews          Review[]
+  reputation       ReputationScore?
+  reportedDisputes Dispute[]         @relation("DisputeReporter")
 }
 
 // NextAuth Models (Mandatory for EmailProvider)
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -91,22 +93,23 @@ model Business {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner    User      @relation(fields: [ownerId], references: [id])
-  services Service[]
-  slots    Availability[]
-  bookings Booking[]
+  owner                 User                   @relation(fields: [ownerId], references: [id])
+  services              Service[]
+  slots                 Availability[]
+  bookings              Booking[]
   availabilityOverrides AvailabilityOverride[]
+  policy                BusinessPolicy?
 }
 
 model Service {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   businessId  String
   name        String
   description String?
-  price       Int      // Store in cents
-  durationMin Int      // e.g., 60
-  bufferMin   Int      @default(15) // Time after service to clean up
-  isActive    Boolean  @default(true)
+  price       Int     // Store in cents
+  durationMin Int     // e.g., 60
+  bufferMin   Int     @default(15) // Time after service to clean up
+  isActive    Boolean @default(true)
 
   business Business  @relation(fields: [businessId], references: [id])
   bookings Booking[]
@@ -116,25 +119,23 @@ model Service {
 // 3. Availability (The Logic)
 // -----------------------------------------------------------------------------
 
-// Simple weekly schedule (recurring)
-// For specific overrides, we'd need a separate Overrides table or more complex logic
 model Availability {
-  id          String @id @default(uuid())
-  businessId  String
-  dayOfWeek   Int    // 0=Sun, 1=Mon, etc.
-  startTime   String // "09:00"
-  endTime     String // "17:00"
-  
+  id         String @id @default(uuid())
+  businessId String
+  dayOfWeek  Int    // 0=Sun, 1=Mon, etc.
+  startTime  String // "09:00"
+  endTime    String // "17:00"
+
   business Business @relation(fields: [businessId], references: [id])
 }
 
 model AvailabilityOverride {
-  id          String @id @default(uuid())
-  businessId  String
-  date        String // "YYYY-MM-DD"
-  isClosed    Boolean
-  startTime   String?
-  endTime     String?
+  id         String  @id @default(uuid())
+  businessId String
+  date       String  // "YYYY-MM-DD"
+  isClosed   Boolean
+  startTime  String?
+  endTime    String?
 
   business Business @relation(fields: [businessId], references: [id])
 }
@@ -144,13 +145,15 @@ model AvailabilityOverride {
 // -----------------------------------------------------------------------------
 
 enum BookingStatus {
-  PENDING
-  CONFIRMED
+  PENDING_PAYMENT    // Booking created, awaiting Stripe payment auth
+  PENDING            // Payment authorised, awaiting business confirmation (MANUAL mode)
+  CONFIRMED          // Business confirmed (or AUTO_CONFIRM)
   CANCELLED_BY_USER
   CANCELLED_BY_BUSINESS
-  COMPLETED
-  NO_SHOW
-  DISPUTED
+  COMPLETED          // Service delivered; payment captured
+  NO_SHOW            // Customer did not appear; no-show fee charged
+  DISPUTED           // Under admin review
+  REFUNDED           // Booking cancelled and payment refunded
 }
 
 model Booking {
@@ -158,46 +161,118 @@ model Booking {
   userId     String
   businessId String
   serviceId  String
-  
-  startTime  DateTime      // stored in UTC
-  endTime    DateTime      // stored in UTC
-  status     BookingStatus @default(PENDING)
-  
-  // Payment info
-  paymentId     String? // Stripe Intent ID
-  paymentStatus String? // "paid", "authorized", "refunded"
-  price         Int     // Snapshot of price at booking time
 
-  notes      String?
-  
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  startTime DateTime      // stored in UTC
+  endTime   DateTime      // stored in UTC
+  status    BookingStatus @default(PENDING_PAYMENT)
+
+  // Payment info
+  paymentId     String? // Stripe PaymentIntent ID
+  paymentStatus String? // "authorized" | "paid" | "refunded" | "charged_no_show" | "failed"
+  depositAmount Int?    // Deposit held in cents (may differ from full price)
+  price         Int     // Snapshot of full service price at booking time (cents)
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User     @relation(fields: [userId], references: [id])
   business Business @relation(fields: [businessId], references: [id])
   service  Service  @relation(fields: [serviceId], references: [id])
+  review   Review?
+  dispute  Dispute?
 }
 
 // -----------------------------------------------------------------------------
-// 5. Trust & Logs
+// 5. Business Policy (Persisted Per Business)
 // -----------------------------------------------------------------------------
 
-model Review {
-  id         String   @id @default(uuid())
-  bookingId  String   @unique
-  userId     String
-  rating     Int      // 1-5
-  comment    String?
-  createdAt  DateTime @default(now())
+model BusinessPolicy {
+  id                        String  @id @default(uuid())
+  businessId                String  @unique
+  cancellationWindowHours   Int     @default(24)  // Hours before appt: free cancel
+  lateCancellationRefundPct Int     @default(0)   // % refund on late cancel
+  noShowFeePercent          Int     @default(100) // % of deposit charged on no-show
+  approvalMode              String  @default("AUTO_CONFIRM") // "AUTO_CONFIRM" | "MANUAL"
+  minLeadTimeHours          Int     @default(2)   // Min hours before booking start
+  maxLeadTimeDays           Int     @default(60)  // Max days in advance
+  depositRequired           Boolean @default(true)
+  depositPercent            Int     @default(50)  // % of price charged as deposit
+
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+// -----------------------------------------------------------------------------
+// 6. Trust, Reputation & Disputes
+// -----------------------------------------------------------------------------
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_FOR_CUSTOMER
+  RESOLVED_FOR_BUSINESS
+  CLOSED
+}
+
+model Dispute {
+  id         String        @id @default(uuid())
+  bookingId  String        @unique
+  reporterId String
+  reason     String
+  status     DisputeStatus @default(OPEN)
+  resolution String?
+  resolvedBy String?       // Admin userId
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  reporter User    @relation("DisputeReporter", fields: [reporterId], references: [id])
+}
+
+// Reputation score per customer user (0–100).
+// Decremented on no-show/late-cancel; incremented on completed bookings.
+model ReputationScore {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  score       Float    @default(100.0) // 0–100; below 50 = restricted
+  noShowCount Int      @default(0)
+  lateCancelCount Int  @default(0)
+  completedCount  Int  @default(0)
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 }
 
+model Review {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  userId    String
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
-  action    String   // "BOOKING_CREATED", "STATUS_CHANGE"
-  entityId  String   // ID of the booking/user affected
-  actorId   String?  // Who did it (User or System)
-  details   Json?    // Snapshot of changes
+  action    String   // e.g. "BOOKING_CREATED", "STATUS_CHANGE", "PAYMENT_CAPTURED"
+  entityId  String   // ID of the affected booking/user/business
+  actorId   String?  // userId or "SYSTEM"
+  details   Json?    // Snapshot of state change
+  createdAt DateTime @default(now())
+}
+
+// Log every notification attempt for observability and retry tracking.
+model NotificationLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  bookingId String?
+  type      String   // "BOOKING_CONFIRMATION" | "CANCELLATION" | "REMINDER" | "NO_SHOW" | "DISPUTE"
+  channel   String   // "email" | "sms"
+  to        String   // recipient address
+  status    String   // "sent" | "failed"
+  error     String?
   createdAt DateTime @default(now())
 }

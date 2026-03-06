@@ -1,73 +1,143 @@
 // pages/index.tsx
+import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import BookingCalendar from '../components/BookingCalendar';
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn, signOut } from 'next-auth/react';
+import prisma from '../lib/prisma';
 
-export default function Home() {
+interface BusinessInfo {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface ServiceInfo {
+  id: string;
+  name: string;
+  durationMin: number;
+  price: number;
+}
+
+interface Props {
+  business: BusinessInfo | null;
+  service: ServiceInfo | null;
+}
+
+export default function Home({ business, service }: Props) {
   const { data: session } = useSession();
 
-  // Hardcoded for MVP Demo (use the seeded Business ID)
-  const businessId = "e2a2f459-8f8d-41b4-8839-810a31434c9a";
-  const serviceId = "srv_123"; 
-  const durationMin = 30;
+  if (!business || !service) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">
+          No active business found. Run <code>npm run seed</code> to seed the database.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <Head>
-        <title>Ares Booking Platform</title>
-        <meta name="description" content="Book your next appointment with ease." />
+        <title>{business.name} | Ares Booking</title>
+        <meta
+          name="description"
+          content={business.description ?? `Book an appointment with ${business.name}.`}
+        />
       </Head>
 
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            Ares Demo Salon
-          </h1>
-          <p className="text-lg text-gray-600">
-            Book your 30-min consultation below.
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">{business.name}</h1>
+          {business.description && (
+            <p className="text-lg text-gray-600">{business.description}</p>
+          )}
+          <p className="text-sm text-gray-400 mt-1">
+            {service.name} &middot; {service.durationMin} min &middot; ${(service.price / 100).toFixed(2)}
           </p>
         </div>
 
-        {/* 1. If Logged Out: Show Sign In Button */}
+        {/* Not signed in */}
         {!session && (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 text-center">
-            <p className="text-gray-500 mb-4">You must be logged in to book.</p>
+            <p className="text-gray-500 mb-4">Sign in to book an appointment.</p>
             <button
               onClick={() => signIn()}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
             >
               Sign In / Sign Up
             </button>
           </div>
         )}
 
-        {/* 2. If Logged In: Show Calendar & Logout */}
+        {/* Signed in */}
         {session && (
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <div className="flex justify-between items-center mb-6">
               <p className="text-sm text-gray-700">
-                Welcome, <strong>{session.user?.email}</strong>!
+                Welcome, <strong>{session.user?.email}</strong>
               </p>
-              <button 
-                onClick={() => signOut()}
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
                 className="text-xs text-red-600 hover:text-red-800 underline"
               >
                 Sign Out
               </button>
             </div>
-
-            <BookingCalendar 
-              businessId={businessId} 
-              serviceId={serviceId} 
-              durationMin={durationMin} 
+            <BookingCalendar
+              businessId={business.id}
+              serviceId={service.id}
+              durationMin={service.durationMin}
             />
           </div>
         )}
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          <p>Powered by Ares Booking Platform 🛡️</p>
+          <p>Powered by Ares Booking Platform</p>
         </div>
       </div>
     </div>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  try {
+    const business = await prisma.business.findFirst({
+      where: { verified: true },
+      include: {
+        services: {
+          where: { isActive: true },
+          orderBy: { price: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!business) {
+      return { props: { business: null, service: null } };
+    }
+
+    const firstService = business.services[0] ?? null;
+
+    return {
+      props: {
+        business: {
+          id: business.id,
+          name: business.name,
+          description: business.description ?? null,
+        },
+        service: firstService
+          ? {
+              id: firstService.id,
+              name: firstService.name,
+              durationMin: firstService.durationMin,
+              price: firstService.price,
+            }
+          : null,
+      },
+    };
+  } catch (err) {
+    console.error('[getServerSideProps /]', err);
+    return { props: { business: null, service: null } };
+  }
+};

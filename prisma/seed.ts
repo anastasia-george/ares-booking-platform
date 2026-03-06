@@ -3,64 +3,97 @@ import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Stable IDs for re-runnable seeding
+const SEED_SERVICE_ID = 'seed-svc-initial-consultation';
+
 async function main() {
   console.log('Seeding database...');
 
-  // 1. Create Business Owner
+  // 1. Business Owner
   const owner = await prisma.user.upsert({
-    where: { email: 'ares@example.com' },
+    where: { email: 'owner@ares.dev' },
     update: {},
     create: {
-      email: 'ares@example.com',
-      name: 'Ares Operator',
-      role: UserRole.BUSINESS_OWNER
-    }
+      email: 'owner@ares.dev',
+      name: 'Ares Owner',
+      role: UserRole.BUSINESS_OWNER,
+    },
   });
 
-  // 2. Create Business
+  // 2. Admin User
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@ares.dev' },
+    update: {},
+    create: {
+      email: 'admin@ares.dev',
+      name: 'Ares Admin',
+      role: UserRole.ADMIN,
+    },
+  });
+
+  // 3. Business
   const business = await prisma.business.upsert({
     where: { slug: 'ares-demo-salon' },
-    update: {},
+    update: { verified: true },
     create: {
       ownerId: owner.id,
       name: 'Ares Demo Salon',
       slug: 'ares-demo-salon',
       verified: true,
-      description: 'A test business for our MVP.'
-    }
+      description: 'A professional appointment booking demo.',
+    },
   });
 
-  console.log(`Created business: ${business.name}`);
-
-  // 3. Create Service
-  const service = await prisma.service.create({
-    data: {
+  // 4. Service (upsert by stable ID — safe to re-run)
+  const service = await prisma.service.upsert({
+    where: { id: SEED_SERVICE_ID },
+    update: { price: 5000 },
+    create: {
+      id: SEED_SERVICE_ID,
       businessId: business.id,
       name: 'Initial Consultation',
-      description: 'A 30-minute chat to discuss needs.',
+      description: 'A 30-minute introductory consultation.',
       durationMin: 30,
+      bufferMin: 15,
       price: 5000, // $50.00
-      isActive: true
-    }
+      isActive: true,
+    },
   });
 
-  console.log(`Created service: ${service.name}`);
+  // 5. Default Business Policy
+  await prisma.businessPolicy.upsert({
+    where: { businessId: business.id },
+    update: {},
+    create: {
+      businessId: business.id,
+      cancellationWindowHours: 24,
+      lateCancellationRefundPct: 0,
+      noShowFeePercent: 100,
+      approvalMode: 'AUTO_CONFIRM',
+      minLeadTimeHours: 2,
+      maxLeadTimeDays: 60,
+      depositRequired: true,
+      depositPercent: 50,
+    },
+  });
 
-  // 4. Set Availability (Mon-Fri, 9am - 5pm)
-  const days = [1, 2, 3, 4, 5]; // Mon-Fri
-  for (const day of days) {
-    await prisma.availability.create({
-      data: {
-        businessId: business.id,
-        dayOfWeek: day,
-        startTime: '09:00',
-        endTime: '17:00'
-      }
-    });
-  }
+  // 6. Availability (Mon–Fri 09:00–17:00) — replace on each run
+  await prisma.availability.deleteMany({ where: { businessId: business.id } });
+  await prisma.availability.createMany({
+    data: [1, 2, 3, 4, 5].map((day) => ({
+      businessId: business.id,
+      dayOfWeek: day,
+      startTime: '09:00',
+      endTime: '17:00',
+    })),
+  });
 
-  console.log('Availability set (Mon-Fri, 9-5).');
-  console.log('Seeding complete! 🌱');
+  console.log('\n=== Seed Complete ===================');
+  console.log(`Business ID : ${business.id}`);
+  console.log(`Service  ID : ${service.id}`);
+  console.log(`Owner    ID : ${owner.id}  (${owner.email})`);
+  console.log(`Admin    ID : ${admin.id}  (${admin.email})`);
+  console.log('=====================================\n');
 }
 
 main()
