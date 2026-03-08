@@ -1,4 +1,7 @@
 // prisma/seed.ts
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+
 import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
