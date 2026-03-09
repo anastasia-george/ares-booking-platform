@@ -107,6 +107,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       }
 
+      case 'setup_intent.succeeded': {
+        const intent = event.data.object as Stripe.SetupIntent;
+        const bookingId = intent.metadata?.bookingId;
+        if (!bookingId) {
+          console.warn('[Stripe Webhook] setup_intent.succeeded: no bookingId in metadata');
+          break;
+        }
+
+        const paymentMethodId = intent.payment_method as string;
+
+        // Save the payment method and confirm the free booking
+        await prisma.booking.update({
+          where: { id: bookingId },
+          data: {
+            paymentMethodId,
+            paymentStatus: 'card_saved',
+          },
+        });
+        await bookingEngine.confirmAfterPayment(bookingId, intent.id, 0);
+
+        // Send confirmation email
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+          include: {
+            user: { select: { id: true, email: true } },
+            service: { select: { name: true } },
+            business: { select: { name: true, owner: { select: { email: true } } } },
+          },
+        });
+        if (booking?.user.email) {
+          await sendBookingConfirmation({
+            userEmail: booking.user.email,
+            businessEmail: booking.business?.owner.email ?? '',
+            userId: booking.user.id,
+            bookingId,
+            serviceName: booking.service.name,
+            date: booking.startTime.toISOString().slice(0, 10),
+            time: booking.startTime.toISOString().slice(11, 16),
+            businessName: booking.business?.name ?? '',
+          });
+        }
+        console.log(`[Stripe Webhook] Free booking ${bookingId} confirmed, card saved`);
+        break;
+      }
+
       case 'payment_intent.payment_failed': {
         const intent = event.data.object as Stripe.PaymentIntent;
         const bookingId = intent.metadata?.bookingId;

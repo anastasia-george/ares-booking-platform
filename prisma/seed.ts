@@ -6,97 +6,213 @@ import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Stable IDs for re-runnable seeding
-const SEED_SERVICE_ID = 'seed-svc-initial-consultation';
+const DEMO_BUSINESSES = [
+  {
+    ownerEmail: 'lashes@demo.modelcall.app',
+    ownerName: 'Sophie Chen',
+    slug: 'glow-lash-studio-surry-hills',
+    name: 'Glow Lash Studio',
+    suburb: 'Surry Hills',
+    city: 'Sydney',
+    state: 'NSW',
+    bio: 'Level 2 lash artist perfecting my volume and hybrid techniques. I offer free and discounted model calls to build my portfolio — you get stunning lashes, I get practice!',
+    instagramHandle: 'glowlashstudio',
+    services: [
+      {
+        id: 'seed-svc-classic-lashes',
+        name: 'Classic Full Set',
+        category: 'Lashes',
+        price: 0,
+        originalPrice: 12000,
+        durationMin: 90,
+        bufferMin: 15,
+        description: 'Full classic lash set — perfect for a natural, everyday look.',
+      },
+      {
+        id: 'seed-svc-lash-fill',
+        name: 'Lash Fill (2–3 weeks)',
+        category: 'Lashes',
+        price: 2000,
+        originalPrice: 8000,
+        durationMin: 60,
+        bufferMin: 15,
+        description: '2–3 week infill to keep your lashes full.',
+      },
+    ],
+  },
+  {
+    ownerEmail: 'nails@demo.modelcall.app',
+    ownerName: 'Priya Sharma',
+    slug: 'polished-by-priya-bondi',
+    name: 'Polished by Priya',
+    suburb: 'Bondi',
+    city: 'Sydney',
+    state: 'NSW',
+    bio: 'Nail tech student specialising in gel and acrylic extensions. Looking for patient models to help me practise nail art and nail enhancement techniques.',
+    instagramHandle: 'polishedbypriya',
+    services: [
+      {
+        id: 'seed-svc-gel-manicure',
+        name: 'Gel Manicure',
+        category: 'Nails',
+        price: 0,
+        originalPrice: 7500,
+        durationMin: 75,
+        bufferMin: 10,
+        description: 'Full gel manicure with cuticle care and colour of your choice.',
+      },
+      {
+        id: 'seed-svc-acrylic-extensions',
+        name: 'Acrylic Full Set',
+        category: 'Nails',
+        price: 3000,
+        originalPrice: 11000,
+        durationMin: 120,
+        bufferMin: 15,
+        description: 'Acrylic nail extensions with gel colour overlay.',
+      },
+    ],
+  },
+  {
+    ownerEmail: 'facials@demo.modelcall.app',
+    ownerName: 'Mia Thornton',
+    slug: 'radiance-skin-studio-newtown',
+    name: 'Radiance Skin Studio',
+    suburb: 'Newtown',
+    city: 'Sydney',
+    state: 'NSW',
+    bio: 'Qualified beauty therapist expanding my skin treatment skills. Offering complimentary facials and skin treatments in exchange for honest feedback and portfolio photos.',
+    instagramHandle: 'radianceskinstudio',
+    services: [
+      {
+        id: 'seed-svc-express-facial',
+        name: 'Express Facial',
+        category: 'Facials',
+        price: 0,
+        originalPrice: 9000,
+        durationMin: 45,
+        bufferMin: 15,
+        description: 'Cleanse, exfoliate, mask and moisturise — great introduction facial.',
+      },
+      {
+        id: 'seed-svc-hydrating-facial',
+        name: 'Hydrating Deep Treatment',
+        category: 'Facials',
+        price: 2500,
+        originalPrice: 14000,
+        durationMin: 75,
+        bufferMin: 15,
+        description: 'Advanced hydrating facial with LED therapy and serum infusion.',
+      },
+    ],
+  },
+];
 
 async function main() {
-  console.log('Seeding database...');
+  console.log('Seeding ModelCall demo data…');
 
-  // 1. Business Owner
-  const owner = await prisma.user.upsert({
-    where: { email: 'owner@ares.dev' },
-    update: {},
-    create: {
-      email: 'owner@ares.dev',
-      name: 'Ares Owner',
-      role: UserRole.BUSINESS_OWNER,
-    },
-  });
-
-  // 2. Admin User
+  // Admin user
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@ares.dev' },
+    where: { email: 'admin@modelcall.app' },
     update: {},
     create: {
-      email: 'admin@ares.dev',
-      name: 'Ares Admin',
+      email: 'admin@modelcall.app',
+      name: 'ModelCall Admin',
       role: UserRole.ADMIN,
     },
   });
 
-  // 3. Business
-  const business = await prisma.business.upsert({
-    where: { slug: 'ares-demo-salon' },
-    update: { verified: true },
-    create: {
-      ownerId: owner.id,
-      name: 'Ares Demo Salon',
-      slug: 'ares-demo-salon',
-      verified: true,
-      description: 'A professional appointment booking demo.',
-    },
-  });
+  for (const demo of DEMO_BUSINESSES) {
+    // Owner user
+    const owner = await prisma.user.upsert({
+      where: { email: demo.ownerEmail },
+      update: {},
+      create: {
+        email: demo.ownerEmail,
+        name: demo.ownerName,
+        role: UserRole.BUSINESS_OWNER,
+      },
+    });
 
-  // 4. Service (upsert by stable ID — safe to re-run)
-  const service = await prisma.service.upsert({
-    where: { id: SEED_SERVICE_ID },
-    update: { price: 5000 },
-    create: {
-      id: SEED_SERVICE_ID,
-      businessId: business.id,
-      name: 'Initial Consultation',
-      description: 'A 30-minute introductory consultation.',
-      durationMin: 30,
-      bufferMin: 15,
-      price: 5000, // $50.00
-      isActive: true,
-    },
-  });
+    // Business
+    const business = await prisma.business.upsert({
+      where: { slug: demo.slug },
+      update: {
+        verified: true,
+        isAcceptingModels: true,
+        suburb: demo.suburb,
+        city: demo.city,
+        state: demo.state,
+        bio: demo.bio,
+        instagramHandle: demo.instagramHandle,
+      },
+      create: {
+        ownerId: owner.id,
+        name: demo.name,
+        slug: demo.slug,
+        verified: true,
+        isAcceptingModels: true,
+        suburb: demo.suburb,
+        city: demo.city,
+        state: demo.state,
+        bio: demo.bio,
+        instagramHandle: demo.instagramHandle,
+      },
+    });
 
-  // 5. Default Business Policy
-  await prisma.businessPolicy.upsert({
-    where: { businessId: business.id },
-    update: {},
-    create: {
-      businessId: business.id,
-      cancellationWindowHours: 24,
-      lateCancellationRefundPct: 0,
-      noShowFeePercent: 100,
-      approvalMode: 'AUTO_CONFIRM',
-      minLeadTimeHours: 2,
-      maxLeadTimeDays: 60,
-      depositRequired: true,
-      depositPercent: 50,
-    },
-  });
+    // Services
+    for (const svc of demo.services) {
+      await prisma.service.upsert({
+        where: { id: svc.id },
+        update: { price: svc.price, originalPrice: svc.originalPrice, isActive: true },
+        create: {
+          id: svc.id,
+          businessId: business.id,
+          name: svc.name,
+          category: svc.category,
+          price: svc.price,
+          originalPrice: svc.originalPrice,
+          durationMin: svc.durationMin,
+          bufferMin: svc.bufferMin,
+          description: svc.description,
+          isActive: true,
+        },
+      });
+    }
 
-  // 6. Availability (Mon–Fri 09:00–17:00) — replace on each run
-  await prisma.availability.deleteMany({ where: { businessId: business.id } });
-  await prisma.availability.createMany({
-    data: [1, 2, 3, 4, 5].map((day) => ({
-      businessId: business.id,
-      dayOfWeek: day,
-      startTime: '09:00',
-      endTime: '17:00',
-    })),
-  });
+    // Default policy
+    await prisma.businessPolicy.upsert({
+      where: { businessId: business.id },
+      update: {},
+      create: {
+        businessId: business.id,
+        cancellationWindowHours: 24,
+        lateCancellationRefundPct: 0,
+        noShowFeePercent: 100,
+        approvalMode: 'AUTO_CONFIRM',
+        minLeadTimeHours: 2,
+        maxLeadTimeDays: 60,
+        depositRequired: false,
+        depositPercent: 0,
+      },
+    });
 
-  console.log('\n=== Seed Complete ===================');
-  console.log(`Business ID : ${business.id}`);
-  console.log(`Service  ID : ${service.id}`);
-  console.log(`Owner    ID : ${owner.id}  (${owner.email})`);
-  console.log(`Admin    ID : ${admin.id}  (${admin.email})`);
-  console.log('=====================================\n');
+    // Availability Tue–Sat 09:00–18:00
+    await prisma.availability.deleteMany({ where: { businessId: business.id } });
+    await prisma.availability.createMany({
+      data: [2, 3, 4, 5, 6].map((day) => ({
+        businessId: business.id,
+        dayOfWeek: day,
+        startTime: '09:00',
+        endTime: '18:00',
+      })),
+    });
+
+    console.log(`  ✓ ${demo.name} (${demo.suburb})`);
+  }
+
+  console.log(`  ✓ Admin: ${admin.email}`);
+  console.log('\nSeed complete!');
 }
 
 main()

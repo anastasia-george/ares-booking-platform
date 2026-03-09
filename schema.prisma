@@ -29,6 +29,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Stripe (for card-on-file on free model calls)
+  stripeCustomerId String?
+
   // Auth Fields (NextAuth)
   emailVerified DateTime?
   image         String?
@@ -93,6 +96,15 @@ model Business {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Marketplace discovery fields
+  suburb              String?  // e.g. "Surry Hills"
+  city                String?  // e.g. "Sydney"
+  state               String?  // e.g. "NSW"
+  bio                 String?  @db.Text
+  instagramHandle     String?
+  isAcceptingModels   Boolean  @default(true)
+  avgRating           Float?   // denormalised for fast listing queries
+
   owner                 User                   @relation(fields: [ownerId], references: [id])
   services              Service[]
   slots                 Availability[]
@@ -106,7 +118,9 @@ model Service {
   businessId  String
   name        String
   description String?
-  price       Int     // Store in cents
+  price       Int     // Model-call price in cents (0 = free)
+  originalPrice Int?  // Full retail price in cents for strikethrough display
+  category    String? // e.g. "Lashes", "Nails", "Facials", "Hair"
   durationMin Int     // e.g., 60
   bufferMin   Int     @default(15) // Time after service to clean up
   isActive    Boolean @default(true)
@@ -167,10 +181,11 @@ model Booking {
   status    BookingStatus @default(PENDING_PAYMENT)
 
   // Payment info
-  paymentId     String? // Stripe PaymentIntent ID
-  paymentStatus String? // "authorized" | "paid" | "refunded" | "charged_no_show" | "failed"
-  depositAmount Int?    // Deposit held in cents (may differ from full price)
-  price         Int     // Snapshot of full service price at booking time (cents)
+  paymentId       String? // Stripe PaymentIntent ID (paid slots) or SetupIntent ID (free slots)
+  paymentMethodId String? // Stripe PaymentMethod ID stored for free-slot no-show charges
+  paymentStatus   String? // "authorized" | "paid" | "refunded" | "charged_no_show" | "failed" | "card_saved"
+  depositAmount   Int?    // Deposit held in cents (may differ from full price; 0 for free slots)
+  price           Int     // Snapshot of full service price at booking time (cents; 0 = free)
 
   notes     String?
   createdAt DateTime @default(now())

@@ -9,14 +9,28 @@ import prisma from '../../lib/prisma';
 
 type Tab = 'services' | 'availability' | 'policy';
 
+const SERVICE_CATEGORIES = ['Lashes', 'Nails', 'Facials', 'Hair', 'Brows', 'Makeup', 'Waxing', 'Massage', 'Other'];
+
 interface Service {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  originalPrice: number | null;
+  category: string | null;
   durationMin: number;
   bufferMin: number;
   isActive: boolean;
+}
+
+interface NewServiceForm {
+  name: string;
+  category: string;
+  originalPrice: string;
+  price: string;
+  durationMin: string;
+  bufferMin: string;
+  description: string;
 }
 
 interface AvailabilitySlot {
@@ -52,6 +66,12 @@ export default function BusinessSetup({ businessId, businessName }: Props) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showNewServiceForm, setShowNewServiceForm] = useState(false);
+  const [newService, setNewService] = useState<NewServiceForm>({
+    name: '', category: 'Lashes', originalPrice: '', price: '0',
+    durationMin: '60', bufferMin: '15', description: '',
+  });
+  const [creatingService, setCreatingService] = useState(false);
 
   useEffect(() => {
     setMessage(null);
@@ -96,6 +116,37 @@ export default function BusinessSetup({ businessId, businessName }: Props) {
       setMessage({ type: 'error', text: 'Failed to load policy' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newService.name.trim()) return;
+    setCreatingService(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/business/${businessId}/services`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newService.name.trim(),
+          category: newService.category,
+          originalPrice: newService.originalPrice ? Math.round(parseFloat(newService.originalPrice) * 100) : null,
+          price: Math.round(parseFloat(newService.price || '0') * 100),
+          durationMin: parseInt(newService.durationMin, 10) || 60,
+          bufferMin: parseInt(newService.bufferMin, 10) || 15,
+          description: newService.description.trim() || null,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed');
+      setMessage({ type: 'success', text: 'Service created!' });
+      setShowNewServiceForm(false);
+      setNewService({ name: '', category: 'Lashes', originalPrice: '', price: '0', durationMin: '60', bufferMin: '15', description: '' });
+      await loadServices();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message ?? 'Failed to create service' });
+    } finally {
+      setCreatingService(false);
     }
   };
 
@@ -166,16 +217,12 @@ export default function BusinessSetup({ businessId, businessName }: Props) {
         <title>Setup | {businessName}</title>
       </Head>
 
-      <nav className="bg-white shadow">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="font-bold text-xl">{businessName} &mdash; Setup</div>
-            <Link href="/dashboard" className="text-sm text-indigo-600 hover:underline">
-              &larr; Dashboard
-            </Link>
-          </div>
+      <div className="bg-white border-b">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <p className="text-xs text-gray-400 mb-0.5">Managing</p>
+          <h1 className="text-lg font-bold text-gray-900">{businessName}</h1>
         </div>
-      </nav>
+      </div>
 
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {/* Tabs */}
@@ -211,36 +258,116 @@ export default function BusinessSetup({ businessId, businessName }: Props) {
           <>
             {/* ---- Services ---- */}
             {tab === 'services' && (
-              <div className="bg-white rounded-lg shadow divide-y">
-                {services.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8 text-sm">
-                    No services yet. Use the API to create services.
-                  </p>
-                ) : (
-                  services.map((svc) => (
-                    <div key={svc.id} className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{svc.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {svc.durationMin} min &middot; ${(svc.price / 100).toFixed(2)} &middot;{' '}
-                          {svc.bufferMin}m buffer
-                        </p>
-                        {svc.description && (
-                          <p className="text-xs text-gray-400 mt-0.5">{svc.description}</p>
-                        )}
+              <div>
+                <div className="bg-white rounded-lg shadow divide-y mb-4">
+                  {services.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8 text-sm">No services yet. Add one below.</p>
+                  ) : (
+                    services.map((svc) => (
+                      <div key={svc.id} className="flex items-center justify-between p-4">
+                        <div>
+                          <p className="font-medium text-gray-900">{svc.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {svc.durationMin} min &middot;{' '}
+                            <span className={svc.price === 0 ? 'text-green-600 font-medium' : ''}>
+                              {svc.price === 0 ? 'FREE' : `$${(svc.price / 100).toFixed(2)}`}
+                            </span>
+                            {svc.originalPrice && svc.originalPrice > svc.price && (
+                              <span className="text-gray-400 line-through ml-1">
+                                ${(svc.originalPrice / 100).toFixed(2)}
+                              </span>
+                            )}
+                            {svc.category && (
+                              <span className="ml-2 text-pink-500">{svc.category}</span>
+                            )}
+                          </p>
+                          {svc.description && (
+                            <p className="text-xs text-gray-400 mt-0.5">{svc.description}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => toggleService(svc.id, svc.isActive)}
+                          className={`px-3 py-1 text-xs rounded-full font-medium transition ${
+                            svc.isActive
+                              ? 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700'
+                              : 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'
+                          }`}
+                        >
+                          {svc.isActive ? 'Active' : 'Inactive'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => toggleService(svc.id, svc.isActive)}
-                        className={`px-3 py-1 text-xs rounded-full font-medium transition ${
-                          svc.isActive
-                            ? 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700'
-                            : 'bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700'
-                        }`}
-                      >
-                        {svc.isActive ? 'Active' : 'Inactive'}
+                    ))
+                  )}
+                </div>
+
+                {/* New service form */}
+                {!showNewServiceForm ? (
+                  <button
+                    onClick={() => setShowNewServiceForm(true)}
+                    className="w-full py-2.5 border-2 border-dashed border-gray-300 text-gray-500 hover:border-pink-400 hover:text-pink-500 rounded-lg text-sm font-medium transition"
+                  >
+                    + Add Service
+                  </button>
+                ) : (
+                  <form onSubmit={createService} className="bg-white rounded-lg shadow p-5 space-y-4">
+                    <h3 className="font-semibold text-gray-900">New Service</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <label className="block col-span-full">
+                        <span className="text-sm font-medium text-gray-700">Name *</span>
+                        <input required value={newService.name}
+                          onChange={(e) => setNewService((p) => ({ ...p, name: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" placeholder="e.g. Classic Full Set" />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Category</span>
+                        <select value={newService.category}
+                          onChange={(e) => setNewService((p) => ({ ...p, category: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm">
+                          {SERVICE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Full retail price ($)</span>
+                        <input type="number" min={0} step={0.01} value={newService.originalPrice}
+                          onChange={(e) => setNewService((p) => ({ ...p, originalPrice: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" placeholder="e.g. 120" />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Model price ($)</span>
+                        <input type="number" min={0} step={0.01} value={newService.price}
+                          onChange={(e) => setNewService((p) => ({ ...p, price: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" placeholder="0 = FREE" />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Duration (min)</span>
+                        <input type="number" min={15} step={15} value={newService.durationMin}
+                          onChange={(e) => setNewService((p) => ({ ...p, durationMin: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Buffer (min)</span>
+                        <input type="number" min={0} step={5} value={newService.bufferMin}
+                          onChange={(e) => setNewService((p) => ({ ...p, bufferMin: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" />
+                      </label>
+                      <label className="block col-span-full">
+                        <span className="text-sm font-medium text-gray-700">Description</span>
+                        <textarea value={newService.description} rows={2}
+                          onChange={(e) => setNewService((p) => ({ ...p, description: e.target.value }))}
+                          className="mt-1 w-full border rounded p-2 text-sm" placeholder="What's included?" />
+                      </label>
+                    </div>
+                    <div className="flex gap-3">
+                      <button type="submit" disabled={creatingService}
+                        className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded text-sm font-medium">
+                        {creatingService ? 'Saving\u2026' : 'Save Service'}
+                      </button>
+                      <button type="button" onClick={() => setShowNewServiceForm(false)}
+                        className="px-5 py-2 border text-gray-600 rounded text-sm hover:bg-gray-50">
+                        Cancel
                       </button>
                     </div>
-                  ))
+                  </form>
                 )}
               </div>
             )}

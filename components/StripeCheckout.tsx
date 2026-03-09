@@ -1,6 +1,6 @@
 // components/StripeCheckout.tsx
-// Stripe payment form. Must NOT be rendered server-side.
-// Import via `next/dynamic` with `{ ssr: false }`.
+// Stripe payment form — handles both paid (PaymentIntent) and free (SetupIntent) flows.
+// Must NOT be rendered server-side. Import via `next/dynamic` with `{ ssr: false }`.
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -10,18 +10,16 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 
-// Initialise once — outside component to avoid recreation on each render.
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
 );
 
-// ---------------------------------------------------------------------------
-// Inner form — must be mounted inside <Elements>
-// ---------------------------------------------------------------------------
 function CheckoutForm({
+  isFree,
   onSuccess,
   onCancel,
 }: {
+  isFree: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
@@ -33,29 +31,50 @@ function CheckoutForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
-
     setProcessing(true);
     setError(null);
 
-    const { error: stripeError } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        // Fallback return URL for redirect-based payment methods (e.g. 3DS)
-        return_url: `${window.location.origin}/?payment=success`,
-      },
-      redirect: 'if_required',
-    });
-
-    if (stripeError) {
-      setError(stripeError.message ?? 'Payment failed. Please try again.');
-      setProcessing(false);
+    if (isFree) {
+      // SetupIntent — collect card without charging
+      const { error: stripeError } = await stripe.confirmSetup({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/my-bookings?setup=success`,
+        },
+        redirect: 'if_required',
+      });
+      if (stripeError) {
+        setError(stripeError.message ?? 'Card setup failed. Please try again.');
+        setProcessing(false);
+      } else {
+        onSuccess();
+      }
     } else {
-      onSuccess();
+      // PaymentIntent — charge deposit
+      const { error: stripeError } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/my-bookings?payment=success`,
+        },
+        redirect: 'if_required',
+      });
+      if (stripeError) {
+        setError(stripeError.message ?? 'Payment failed. Please try again.');
+        setProcessing(false);
+      } else {
+        onSuccess();
+      }
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {isFree && (
+        <div className="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+          <strong>Free appointment</strong> — your card won&apos;t be charged today.
+          We collect it only to protect the business against no-shows.
+        </div>
+      )}
       <PaymentElement />
       {error && (
         <p className="text-red-500 text-sm rounded bg-red-50 p-2">{error}</p>
@@ -66,7 +85,7 @@ function CheckoutForm({
           disabled={!stripe || processing}
           className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          {processing ? 'Processing…' : 'Confirm & Pay Deposit'}
+          {processing ? 'Processing…' : isFree ? 'Confirm — Save Card' : 'Confirm & Pay Deposit'}
         </button>
         <button
           type="button"
@@ -81,15 +100,14 @@ function CheckoutForm({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Outer wrapper — provides Stripe context
-// ---------------------------------------------------------------------------
 export default function StripeCheckout({
   clientSecret,
+  isFree = false,
   onSuccess,
   onCancel,
 }: {
   clientSecret: string;
+  isFree?: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
@@ -98,7 +116,7 @@ export default function StripeCheckout({
       stripe={stripePromise}
       options={{ clientSecret, appearance: { theme: 'stripe' } }}
     >
-      <CheckoutForm onSuccess={onSuccess} onCancel={onCancel} />
+      <CheckoutForm isFree={isFree} onSuccess={onSuccess} onCancel={onCancel} />
     </Elements>
   );
 }

@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await requireOwnerOrAdmin(req, res, businessId as string);
     if (!session) return res.status(403).json({ error: 'FORBIDDEN' });
 
-    const { name, description, price, durationMin, bufferMin } = req.body;
+    const { name, description, price, originalPrice, category, durationMin, bufferMin } = req.body;
     if (!name || price === undefined || !durationMin) {
       return res.status(400).json({ error: 'name, price, and durationMin are required.' });
     }
@@ -43,6 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name,
         description: description ?? null,
         price: Number(price),
+        originalPrice: originalPrice != null ? Number(originalPrice) : null,
+        category: category ?? null,
         durationMin: Number(durationMin),
         bufferMin: Number(bufferMin ?? 15),
       },
@@ -55,13 +57,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!session) return res.status(403).json({ error: 'FORBIDDEN' });
     if (!sid) return res.status(400).json({ error: 'sid (serviceId) query param required.' });
 
-    const { name, description, price, durationMin, bufferMin, isActive } = req.body;
+    const { name, description, price, originalPrice, category, durationMin, bufferMin, isActive } = req.body;
     const service = await prisma.service.update({
       where: { id: sid as string },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
         ...(price !== undefined && { price: Number(price) }),
+        ...(originalPrice !== undefined && { originalPrice: originalPrice != null ? Number(originalPrice) : null }),
+        ...(category !== undefined && { category: category ?? null }),
         ...(durationMin !== undefined && { durationMin: Number(durationMin) }),
         ...(bufferMin !== undefined && { bufferMin: Number(bufferMin) }),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),

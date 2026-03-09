@@ -62,19 +62,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 5. Create booking (atomically checks for double-booking, fetches price, applies policy)
     const booking = await bookingEngine.createBooking(userId, businessId, serviceId, startDateTime, notes);
 
-    // 6. Create Stripe deposit hold (if deposit required)
+    // 6. Payment flow: free (card-on-file) vs paid (deposit hold)
     const policy = await getPolicy(businessId);
     let clientSecret: string | null = null;
+    let isFree = false;
 
-    if (policy.depositRequired) {
+    if (booking.price === 0) {
+      // FREE model call — collect card via SetupIntent for no-show protection
+      isFree = true;
+      const userEmail = session.user.email ?? '';
+      const result = await paymentManager.createSetupIntent(userId, booking.id, userEmail);
+      clientSecret = result.clientSecret;
+    } else if (policy.depositRequired) {
+      // PAID slot — standard deposit hold
       const depositCents = Math.round(booking.price * (policy.depositPercent / 100));
       clientSecret = await paymentManager.createPaymentHold(userId, depositCents, booking.id);
     } else {
-      // No deposit required — auto-confirm immediately
+      // Paid but no deposit required — auto-confirm immediately
       await bookingEngine.confirmAfterPayment(booking.id, 'NO_DEPOSIT', 0);
     }
 
-    return res.status(201).json({ booking, clientSecret });
+    return res.status(201).json({ booking, clientSecret, isFree });
 
   } catch (error: any) {
     console.error('[POST /api/bookings]', error);

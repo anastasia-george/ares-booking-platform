@@ -153,6 +153,104 @@ export class PaymentManager {
   }
 
   /**
+   * 5a. CREATE SETUP INTENT (free model call — card on file)
+   * Creates or retrieves a Stripe Customer for the user, then creates a
+   * SetupIntent to collect card details without charging.
+   * Returns { clientSecret, customerId }
+   */
+  async createSetupIntent(
+    userId: string,
+    bookingId: string,
+    userEmail: string
+  ): Promise<{ clientSecret: string; customerId: string }> {
+    // Reuse existing Stripe customer if we have one
+    let user = await prisma.user.findUnique({ where: { id: userId } });
+    let customerId = user?.stripeCustomerId ?? null;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: { userId },
+      });
+      customerId = customer.id;
+      await prisma.user.update({
+        where: { id: userId },
+        data: { stripeCustomerId: customerId },
+      });
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      usage: 'off_session', // Allows future charges for no-shows
+      metadata: { bookingId, userId },
+    });
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        paymentId: setupIntent.id,
+        paymentStatus: 'pending_card',
+        depositAmount: 0,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'SETUP_INTENT_CREATED',
+        entityId: bookingId,
+        actorId: userId,
+        details: { setupIntentId: setupIntent.id },
+      },
+    });
+
+    return { clientSecret: setupIntent.client_secret!, customerId };
+  }
+
+  /**
+   * 5b. CHARGE NO-SHOW FEE FROM SAVED PAYMENT METHOD (free bookings)
+   * Used when a free model-call customer no-shows — charge them off-session.
+   */
+  async chargeNoShowFeeFromPaymentMethod(
+    bookingId: string,
+    feeAmountCents: number,
+    currency = 'aud'
+  ): Promise<void> {
+    if (feeAmountCents <= 0) return;
+
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking?.paymentMethodId) throw new Error('MISSING_PAYMENT_METHOD: No saved card found.');
+
+    const user = await prisma.user.findUnique({ where: { id: booking.userId } });
+    if (!user?.stripeCustomerId) throw new Error('MISSING_STRIPE_CUSTOMER');
+
+    const intent = await stripe.paymentIntents.create({
+      amount: feeAmountCents,
+      currency,
+      customer: user.stripeCustomerId,
+      payment_method: booking.paymentMethodId,
+      off_session: true,
+      confirm: true,
+      description: `No-show fee for booking ${bookingId}`,
+      metadata: { bookingId, type: 'no_show_fee' },
+    });
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { paymentStatus: 'charged_no_show' },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        action: 'PAYMENT_NO_SHOW_FEE',
+        entityId: bookingId,
+        actorId: 'SYSTEM',
+        details: { paymentIntentId: intent.id, feeAmountCents },
+      },
+    });
+  }
+
+  /**
    * 5. CANCEL HOLD (zero-charge cancel)
    * Cancels an uncaptured PaymentIntent, releasing the authorisation.
    * Used when a booking is cancelled before the deposit was ever charged.
