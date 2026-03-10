@@ -1,22 +1,68 @@
-// pages/businesses/[slug].tsx — Public business profile + booking
+// pages/businesses/[slug].tsx
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { PrismaClient } from '@prisma/client';
 import dynamic from 'next/dynamic';
-import prisma from '../../lib/prisma';
+import {
+  ArrowLeft, MapPin, Star, CheckCircle2, Share2,
+  Heart, Clock, Calendar, ChevronRight, BadgeCheck,
+  Instagram, Shield, Users,
+} from 'lucide-react';
 
 const BookingCalendar = dynamic(() => import('../../components/BookingCalendar'), { ssr: false });
 
-interface ReviewSnippet {
-  id: string;
-  rating: number;
-  comment: string | null;
-  createdAt: string;
-  user: { name: string | null };
+// ---------------------------------------------------------------------------
+// Image helpers
+// ---------------------------------------------------------------------------
+const CAT_PHOTOS: Record<string, string[]> = {
+  Injectables: [
+    'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1512496015851-a9083832c668?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1503236823255-94609f598e71?q=80&w=800&auto=format&fit=crop',
+  ],
+  Lashes: [
+    'https://images.unsplash.com/photo-1583001931096-959e9a1a6223?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1512496015851-a9083832c668?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1503236823255-94609f598e71?q=80&w=800&auto=format&fit=crop',
+  ],
+  Hair: [
+    'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+  ],
+  Nails: [
+    'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1503236823255-94609f598e71?q=80&w=800&auto=format&fit=crop',
+  ],
+};
+
+const FALLBACK_PHOTOS = [
+  'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+];
+
+function getPhotos(cat: string | null): string[] {
+  return (cat && CAT_PHOTOS[cat]) ? CAT_PHOTOS[cat] : FALLBACK_PHOTOS;
 }
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 interface ServiceInfo {
   id: string;
   name: string;
@@ -27,7 +73,15 @@ interface ServiceInfo {
   description: string | null;
 }
 
-interface BusinessProfile {
+interface ReviewInfo {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  user: { name: string | null };
+}
+
+interface BusinessData {
   id: string;
   name: string;
   slug: string;
@@ -37,186 +91,520 @@ interface BusinessProfile {
   bio: string | null;
   instagramHandle: string | null;
   avgRating: number | null;
+  verified: boolean;
   services: ServiceInfo[];
-  reviews: ReviewSnippet[];
+  reviews: ReviewInfo[];
 }
 
-interface Props {
-  business: BusinessProfile | null;
+interface Props { business: BusinessData | null }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map((n) => (
+        <Star
+          key={n}
+          className={`w-3.5 h-3.5 ${n <= Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-[#E2E8F0]'}`}
+          strokeWidth={0}
+        />
+      ))}
+    </div>
+  );
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 export default function BusinessProfilePage({ business }: Props) {
-  const { data: session } = useSession();
-  const [selectedService, setSelectedService] = useState<ServiceInfo | null>(
+  const { data: session }  = useSession();
+  const [selectedSvc, setSelectedSvc] = useState<ServiceInfo | null>(
     business?.services[0] ?? null
   );
+  const [saved, setSaved]           = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
 
   if (!business) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500 text-lg mb-4">Business not found.</p>
-          <Link href="/" className="text-pink-500 hover:underline">← Back to listings</Link>
-        </div>
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center gap-5 px-4">
+        <MapPin className="w-14 h-14 text-[#CBD5E1]" strokeWidth={1.5} />
+        <h1 className="text-2xl font-bold text-[#0F172A]">Listing not found</h1>
+        <p className="text-[#64748B] text-sm text-center max-w-xs">
+          This listing may have been removed or the link is incorrect.
+        </p>
+        <Link
+          href="/"
+          className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#0D9488] text-white font-bold text-sm hover:bg-teal-600 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Browse listings
+        </Link>
       </div>
     );
   }
 
-  const isFree = selectedService?.price === 0;
+  const firstCat  = business.services[0]?.category ?? null;
+  const photos    = getPhotos(firstCat);
+  const lowestSvc = business.services.reduce<ServiceInfo | null>((a, b) => (!a || b.price < a.price ? b : a), null);
 
   return (
     <>
       <Head>
-        <title>{business.name} | ModelCall</title>
-        <meta name="description" content={business.bio ?? `Book a model call with ${business.name}`} />
+        <title>{business.name} — Model Call</title>
+        <meta name="description" content={business.bio ?? `Book a free or discounted ${firstCat ?? 'beauty'} treatment with ${business.name}`} />
       </Head>
-      <div className="min-h-screen bg-gray-50">
-        {/* Gradient accent bar */}
-        <div className="bg-white border-b">
-          <div className="h-1.5 bg-gradient-to-r from-pink-400 to-purple-400" />
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <Link href="/" className="text-sm text-pink-500 hover:underline mb-3 inline-block">← Back to listings</Link>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div>
-                <h1 className="text-2xl font-extrabold text-gray-900">{business.name}</h1>
-                {(business.suburb || business.city) && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    📍 {[business.suburb, business.city, business.state].filter(Boolean).join(', ')}
-                  </p>
-                )}
-                {business.avgRating && (
-                  <span className="inline-block mt-2 text-sm font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                    ★ {business.avgRating.toFixed(1)} average rating
-                  </span>
-                )}
-              </div>
-              {business.instagramHandle && (
-                <a
-                  href={`https://instagram.com/${business.instagramHandle}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className="text-pink-500 hover:text-pink-600 text-sm font-medium"
-                >
-                  @{business.instagramHandle}
-                </a>
-              )}
+
+      <div className="bg-[#F8FAFC] min-h-screen">
+
+        {/* ── Breadcrumb ────────────────────────────────────── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-3">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] hover:text-[#0F172A] transition-colors group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" strokeWidth={2} />
+              Model Calls
+            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSaved(!saved)}
+                className="flex items-center gap-1.5 text-sm font-semibold text-[#0F172A] hover:text-[#64748B] transition-colors px-3 py-1.5"
+              >
+                <Heart className={`w-4 h-4 ${saved ? 'fill-rose-500 text-rose-500' : ''}`} strokeWidth={2} />
+                Save
+              </button>
+              <button className="flex items-center gap-1.5 text-sm font-semibold text-[#0F172A] hover:text-[#64748B] transition-colors px-3 py-1.5">
+                <Share2 className="w-4 h-4" strokeWidth={2} />
+                Share
+              </button>
             </div>
-            {business.bio && (
-              <p className="mt-4 text-gray-600 text-sm max-w-2xl">{business.bio}</p>
-            )}
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left: service list */}
-          <div className="md:col-span-1">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Services</h2>
-            <div className="space-y-2">
-              {business.services.map((svc) => {
-                const isSelected = selectedService?.id === svc.id;
-                const free = svc.price === 0;
-                return (
-                  <button key={svc.id} onClick={() => setSelectedService(svc)}
-                    className={`w-full text-left rounded-xl border p-4 transition ${
-                      isSelected
-                        ? 'border-pink-400 bg-pink-50 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-pink-300'
-                    }`}>
-                    <p className="font-medium text-gray-900 text-sm leading-snug">{svc.name}</p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className={`text-sm font-bold ${free ? 'text-green-600' : 'text-pink-600'}`}>
-                        {free ? 'FREE' : `$${(svc.price / 100).toFixed(0)}`}
-                      </span>
-                      {svc.originalPrice && svc.originalPrice > svc.price && (
-                        <span className="text-xs text-gray-400 line-through">${(svc.originalPrice / 100).toFixed(0)}</span>
-                      )}
-                      <span className="text-xs text-gray-400">{svc.durationMin} min</span>
-                    </div>
-                    {svc.category && (
-                      <span className="text-xs text-pink-500 mt-1 inline-block">{svc.category}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right: booking calendar */}
-          <div className="md:col-span-2">
-            {!session ? (
-              <div className="bg-white rounded-xl border p-8 text-center">
-                <p className="text-gray-500 mb-4">Sign in to book this service</p>
-                <button onClick={() => signIn()}
-                  className="px-6 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium text-sm transition">
-                  Sign In / Sign Up
-                </button>
-              </div>
-            ) : selectedService ? (
-              <div>
-                <div className="mb-3 flex items-center gap-3 flex-wrap">
-                  <h2 className="font-semibold text-gray-900">{selectedService.name}</h2>
-                  <span className={`text-sm font-bold ${isFree ? 'text-green-600' : 'text-pink-600'}`}>
-                    {isFree ? 'FREE (card required)' : `$${(selectedService.price / 100).toFixed(0)}`}
-                  </span>
-                </div>
-                {selectedService.description && (
-                  <p className="text-sm text-gray-500 mb-4">{selectedService.description}</p>
-                )}
-                <BookingCalendar
-                  businessId={business.id}
-                  serviceId={selectedService.id}
-                  durationMin={selectedService.durationMin}
+        {/* ── 5-Photo Grid ──────────────────────────────────── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-10">
+          <div className="rounded-2xl overflow-hidden" style={{ height: 460 }}>
+            <div className="grid grid-cols-4 grid-rows-2 gap-1.5 h-full">
+              {/* Hero: left half, full height */}
+              <div className="col-span-2 row-span-2 overflow-hidden relative group">
+                <img
+                  src={photos[0]}
+                  alt={business.name}
+                  className="w-full h-full object-cover group-hover:scale-[1.025] transition-transform duration-700"
                 />
               </div>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Reviews */}
-        {business.reviews.length > 0 && (
-          <div className="max-w-4xl mx-auto px-4 pb-12">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Reviews</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {business.reviews.map((rev) => (
-                <div key={rev.id} className="bg-white rounded-xl border p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-800">{rev.user.name ?? 'Anonymous'}</span>
-                    <span className="text-amber-400 text-sm">
-                      {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
-                    </span>
-                  </div>
-                  {rev.comment && <p className="text-sm text-gray-600">{rev.comment}</p>}
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(rev.createdAt).toLocaleDateString('en-AU', { dateStyle: 'medium' })}
-                  </p>
+              {/* 4 small tiles */}
+              {photos.slice(1, 5).map((src, idx) => (
+                <div key={idx} className="overflow-hidden relative group">
+                  <img
+                    src={src}
+                    alt=""
+                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                  />
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
+
+        {/* ── Two-col body ──────────────────────────────────── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-14">
+
+            {/* ════════════════════════════════════════
+                LEFT — Content (2/3)
+            ════════════════════════════════════════ */}
+            <div className="lg:col-span-2 space-y-10">
+
+              {/* Title */}
+              <div className="pb-8 border-b border-[#E2E8F0]">
+                <div className="flex items-center gap-2.5 flex-wrap mb-2">
+                  <h1 className="text-2xl sm:text-[28px] font-black text-[#0F172A] leading-tight">
+                    {business.name}
+                  </h1>
+                  {business.verified && (
+                    <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 text-[11px] font-bold px-2.5 py-1 rounded-full">
+                      <BadgeCheck className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Verified Academy
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#64748B] mt-2">
+                  {(business.suburb || business.state) && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" strokeWidth={2} />
+                      {[business.suburb, business.city, business.state].filter(Boolean).join(', ')}
+                    </span>
+                  )}
+                  {business.avgRating && (
+                    <span className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" strokeWidth={0} />
+                      <strong className="text-[#0F172A]">{business.avgRating.toFixed(1)}</strong>
+                      <span>({business.reviews.length} review{business.reviews.length !== 1 ? 's' : ''})</span>
+                    </span>
+                  )}
+                  {business.instagramHandle && (
+                    <a href={`https://instagram.com/${business.instagramHandle}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#0D9488] hover:underline">
+                      <Instagram className="w-3.5 h-3.5" strokeWidth={2} />
+                      @{business.instagramHandle}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Host */}
+              <div className="flex items-center gap-4 pb-8 border-b border-[#E2E8F0]">
+                <div className="relative shrink-0">
+                  <img src="https://i.pravatar.cc/80?img=45" alt="Host" className="w-14 h-14 rounded-full object-cover" />
+                  {business.verified && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#0D9488] rounded-full flex items-center justify-center border-2 border-white">
+                      <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={2.5} />
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-[#0F172A] text-[15px]">
+                    Hosted by {business.name.split(' ')[0]}
+                  </p>
+                  <p className="text-[13px] text-[#94A3B8]">Joined 2024 · Beauty Professional</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-6 text-center">
+                  {[
+                    { val: business.reviews.length, label: 'Reviews' },
+                    ...(business.avgRating ? [{ val: business.avgRating.toFixed(1), label: 'Rating' }] : []),
+                    { val: business.services.length, label: 'Services' },
+                  ].map((stat) => (
+                    <div key={stat.label}>
+                      <p className="text-[17px] font-black text-[#0F172A] leading-none">{stat.val}</p>
+                      <p className="text-[11px] text-[#94A3B8] mt-0.5">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trust badges */}
+              <div className="grid sm:grid-cols-3 gap-5 pb-8 border-b border-[#E2E8F0]">
+                {[
+                  { Icon: BadgeCheck, title: 'Certified professional', sub: 'Fully qualified & insured' },
+                  { Icon: Shield,     title: 'Safe & hygienic',         sub: 'Clinical standards maintained' },
+                  { Icon: Users,      title: 'Model-friendly',          sub: 'Great for first-timers' },
+                ].map(({ Icon, title, sub }) => (
+                  <div key={title} className="flex items-start gap-3">
+                    <Icon className="w-6 h-6 text-[#0D9488] shrink-0 mt-0.5" strokeWidth={1.75} />
+                    <div>
+                      <p className="font-semibold text-[#0F172A] text-[14px]">{title}</p>
+                      <p className="text-[13px] text-[#94A3B8]">{sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* About */}
+              {business.bio && (
+                <div className="pb-8 border-b border-[#E2E8F0]">
+                  <h2 className="text-[17px] font-black text-[#0F172A] mb-4">About this clinic</h2>
+                  <p className="text-[15px] text-[#475569] leading-relaxed whitespace-pre-line">{business.bio}</p>
+                </div>
+              )}
+
+              {/* Services */}
+              <div className="pb-8 border-b border-[#E2E8F0]">
+                <h2 className="text-[17px] font-black text-[#0F172A] mb-5">Model call treatments</h2>
+                <div className="space-y-3">
+                  {business.services.map((svc) => {
+                    const isSelected = selectedSvc?.id === svc.id;
+                    const free = svc.price === 0;
+                    return (
+                      <div
+                        key={svc.id}
+                        onClick={() => { setSelectedSvc(svc); setShowBooking(true); }}
+                        className={`
+                          flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer
+                          transition-all duration-150 hover:-translate-y-px
+                          ${isSelected
+                            ? 'border-[#0D9488] bg-[#F0FDFA] shadow-[0_2px_16px_rgba(13,148,136,0.1)]'
+                            : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E1] hover:shadow-sm'
+                          }
+                        `}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <p className="font-semibold text-[#0F172A] text-[14px]">{svc.name}</p>
+                            {svc.category && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F0FDFA] text-[#0D9488]">
+                                {svc.category}
+                              </span>
+                            )}
+                          </div>
+                          {svc.description && (
+                            <p className="text-[13px] text-[#94A3B8] truncate">{svc.description}</p>
+                          )}
+                          <span className="inline-flex items-center gap-1 mt-1.5 text-[12px] text-[#94A3B8]">
+                            <Clock className="w-3 h-3" strokeWidth={2} />
+                            {svc.durationMin} min
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="text-right">
+                            <p className={`text-[15px] font-black leading-none ${free ? 'text-[#0D9488]' : 'text-[#0F172A]'}`}>
+                              {free ? 'FREE' : `$${(svc.price / 100).toFixed(0)}`}
+                            </p>
+                            {svc.originalPrice && svc.originalPrice > svc.price && (
+                              <p className="text-[12px] text-[#CBD5E1] line-through mt-0.5">
+                                ${(svc.originalPrice / 100).toFixed(0)}
+                              </p>
+                            )}
+                          </div>
+                          <button className={`
+                            px-4 py-2 rounded-xl text-[13px] font-bold border-2 transition-all duration-150
+                            ${isSelected
+                              ? 'border-[#0D9488] bg-[#0D9488] text-white'
+                              : 'border-[#E2E8F0] text-[#0F172A] hover:border-[#0D9488] hover:text-[#0D9488]'
+                            }
+                          `}>
+                            {isSelected ? 'Selected' : 'Select'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Map */}
+              <div className="pb-8 border-b border-[#E2E8F0]">
+                <h2 className="text-[17px] font-black text-[#0F172A] mb-1">Location</h2>
+                {(business.suburb || business.state) && (
+                  <p className="text-[14px] text-[#64748B] mb-4 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-[#0D9488]" strokeWidth={2} />
+                    {[business.suburb, business.city, business.state].filter(Boolean).join(', ')}
+                  </p>
+                )}
+                <div
+                  className="relative rounded-2xl overflow-hidden bg-[#E2E8F0]"
+                  style={{ height: 200 }}
+                >
+                  <div
+                    className="w-full h-full"
+                    style={{
+                      backgroundImage: `url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1200&auto=format&fit=crop')`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-[#0F172A]/20 flex items-center justify-center">
+                    <div className="bg-white rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-[#0D9488] flex items-center justify-center shrink-0">
+                        <MapPin className="w-4 h-4 text-white fill-white" strokeWidth={2} />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-[#0F172A]">{business.name}</p>
+                        <p className="text-[11px] text-[#94A3B8]">
+                          {[business.suburb, business.state].filter(Boolean).join(', ') || 'Australia'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-3 text-[12px] text-[#94A3B8]">Exact address shared after booking confirmation.</p>
+              </div>
+
+              {/* Reviews */}
+              {business.reviews.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-7">
+                    <Star className="w-5 h-5 fill-[#0F172A] text-[#0F172A]" strokeWidth={0} />
+                    <span className="text-[22px] font-black text-[#0F172A]">
+                      {business.avgRating?.toFixed(1)}
+                    </span>
+                    <span className="w-px h-6 bg-[#E2E8F0]" />
+                    <span className="text-[17px] font-black text-[#0F172A]">
+                      {business.reviews.length} review{business.reviews.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    {business.reviews.map((rev) => (
+                      <div key={rev.id} className="bg-white rounded-2xl p-5 border border-[#E2E8F0]">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0D9488] to-[#0F172A] flex items-center justify-center text-white text-xs font-bold shrink-0">
+                              {(rev.user.name ?? 'A')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-semibold text-[#0F172A]">{rev.user.name ?? 'Anonymous'}</p>
+                              <p className="text-[11px] text-[#CBD5E1]">
+                                {new Date(rev.createdAt).toLocaleDateString('en-AU', { dateStyle: 'medium' })}
+                              </p>
+                            </div>
+                          </div>
+                          <StarRow rating={rev.rating} />
+                        </div>
+                        {rev.comment && (
+                          <p className="text-[13px] text-[#475569] leading-relaxed">{rev.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ════════════════════════════════════════
+                RIGHT — Sticky Booking Widget (1/3)
+            ════════════════════════════════════════ */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24">
+                <div className="bg-white rounded-3xl shadow-2xl border border-[#E2E8F0] overflow-hidden">
+
+                  {/* Price header */}
+                  <div className="px-6 pt-6 pb-5 border-b border-[#E2E8F0]">
+                    <div className="flex items-baseline gap-3 mb-1.5">
+                      <span className={`text-2xl font-black ${lowestSvc?.price === 0 ? 'text-[#0D9488]' : 'text-[#0F172A]'}`}>
+                        {lowestSvc?.price === 0 ? 'FREE' : lowestSvc ? `From $${(lowestSvc.price / 100).toFixed(0)}` : 'Free'}
+                      </span>
+                      {lowestSvc?.originalPrice && lowestSvc.originalPrice > lowestSvc.price && (
+                        <span className="text-[15px] text-[#CBD5E1] line-through">
+                          ${(lowestSvc.originalPrice / 100).toFixed(0)}
+                        </span>
+                      )}
+                    </div>
+                    {business.avgRating ? (
+                      <div className="flex items-center gap-1.5 text-[13px]">
+                        <Star className="w-3.5 h-3.5 fill-[#0F172A] text-[#0F172A]" strokeWidth={0} />
+                        <span className="font-semibold text-[#0F172A]">{business.avgRating.toFixed(1)}</span>
+                        <span className="text-[#94A3B8]">·</span>
+                        <span className="text-[#94A3B8] underline cursor-pointer">
+                          {business.reviews.length} review{business.reviews.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-[13px] text-[#94A3B8]">No reviews yet</p>
+                    )}
+                  </div>
+
+                  {/* Treatment picker */}
+                  {business.services.length > 1 && (
+                    <div className="px-6 py-4 border-b border-[#E2E8F0]">
+                      <p className="text-[10px] font-black text-[#0F172A] tracking-widest uppercase mb-2">Treatment</p>
+                      <select
+                        value={selectedSvc?.id ?? ''}
+                        onChange={(e) => {
+                          const found = business.services.find(s => s.id === e.target.value);
+                          if (found) setSelectedSvc(found);
+                        }}
+                        className="w-full text-[13px] font-medium text-[#0F172A] bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 focus:border-[#0D9488] transition-all"
+                      >
+                        {business.services.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} — {s.price === 0 ? 'FREE' : `$${(s.price / 100).toFixed(0)}`} ({s.durationMin} min)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Date / time placeholder */}
+                  <div className="px-6 py-4 space-y-2.5 border-b border-[#E2E8F0]">
+                    <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 flex items-center justify-between cursor-pointer hover:border-[#0D9488] transition-colors group">
+                      <div>
+                        <p className="text-[10px] font-black text-[#0F172A] tracking-widest uppercase mb-0.5">Date</p>
+                        <p className="text-[13px] font-medium text-[#CBD5E1] group-hover:text-[#64748B] transition-colors">Select a date</p>
+                      </div>
+                      <Calendar className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#0D9488] transition-colors" strokeWidth={2} />
+                    </div>
+                    <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 flex items-center justify-between cursor-pointer hover:border-[#0D9488] transition-colors group">
+                      <div>
+                        <p className="text-[10px] font-black text-[#0F172A] tracking-widest uppercase mb-0.5">Time</p>
+                        <p className="text-[13px] font-medium text-[#CBD5E1] group-hover:text-[#64748B] transition-colors">Select a time</p>
+                      </div>
+                      <Clock className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#0D9488] transition-colors" strokeWidth={2} />
+                    </div>
+                  </div>
+
+                  {/* BookingCalendar (expanded when signed in & a service is selected) */}
+                  {showBooking && selectedSvc && session && (
+                    <div className="px-4 pt-2">
+                      <BookingCalendar
+                        businessId={business.id}
+                        serviceId={selectedSvc.id}
+                        durationMin={selectedSvc.durationMin}
+                      />
+                    </div>
+                  )}
+
+                  {/* CTA */}
+                  <div className="px-6 pt-4 pb-6">
+                    {session ? (
+                      <button
+                        onClick={() => setShowBooking(!showBooking)}
+                        className="w-full py-4 rounded-2xl font-bold text-[15px] bg-gradient-to-r from-[#0D9488] to-teal-600 text-white hover:opacity-90 active:opacity-80 transition-opacity shadow-lg shadow-teal-900/20 flex items-center justify-center gap-2"
+                      >
+                        Apply for Model Call
+                        <ChevronRight className="w-4 h-4" strokeWidth={2.5} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => signIn()}
+                        className="w-full py-4 rounded-2xl font-bold text-[15px] bg-gradient-to-r from-[#0D9488] to-teal-600 text-white hover:opacity-90 active:opacity-80 transition-opacity shadow-lg shadow-teal-900/20"
+                      >
+                        Sign in to Apply
+                      </button>
+                    )}
+                    <p className="text-center text-[12px] text-[#94A3B8] mt-3">You won&rsquo;t be charged yet.</p>
+
+                    {/* Breakdown */}
+                    {selectedSvc && (
+                      <div className="mt-5 space-y-2 text-[13px]">
+                        <div className="flex justify-between text-[#64748B]">
+                          <span>{selectedSvc.name}</span>
+                          <span>{selectedSvc.price === 0 ? 'FREE' : `$${(selectedSvc.price / 100).toFixed(0)}`}</span>
+                        </div>
+                        {selectedSvc.originalPrice && selectedSvc.originalPrice > selectedSvc.price && (
+                          <div className="flex justify-between text-[#64748B]">
+                            <span>Model Call discount</span>
+                            <span className="text-[#0D9488] font-semibold">
+                              –${((selectedSvc.originalPrice - selectedSvc.price) / 100).toFixed(0)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="border-t border-[#E2E8F0] pt-2 flex justify-between font-bold text-[#0F172A]">
+                          <span>Total</span>
+                          <span>{selectedSvc.price === 0 ? 'FREE' : `$${(selectedSvc.price / 100).toFixed(0)}`}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-center mt-4 text-[12px] text-[#CBD5E1] hover:text-[#94A3B8] cursor-pointer transition-colors">
+                  Report this listing
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </>
   );
 }
 
+// ---------------------------------------------------------------------------
+// Data fetching
+// ---------------------------------------------------------------------------
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  const slug = params?.slug as string;
+  const slug  = params?.slug as string;
+  const prisma = new PrismaClient();
   try {
     const business = await prisma.business.findUnique({
-      where: { slug },
+      where:   { slug },
       include: {
-        services: {
-          where: { isActive: true },
-          orderBy: { price: 'asc' },
-        },
+        services: { where: { isActive: true }, orderBy: { price: 'asc' } },
         bookings: {
-          where: { status: 'COMPLETED' },
-          include: {
-            review: {
-              include: { user: { select: { name: true } } },
-            },
-          },
+          where:   { status: 'COMPLETED' },
+          include: { review: { include: { user: { select: { name: true } } } } },
           orderBy: { startTime: 'desc' },
-          take: 20,
+          take:    20,
         },
       },
     });
@@ -226,40 +614,47 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     const reviews = business.bookings
       .filter((b) => b.review)
       .map((b) => ({
-        id: b.review!.id,
-        rating: b.review!.rating,
-        comment: b.review!.comment ?? null,
+        id:        b.review!.id,
+        rating:    b.review!.rating,
+        comment:   b.review!.comment ?? null,
         createdAt: b.review!.createdAt.toISOString(),
-        user: b.review!.user,
+        user:      b.review!.user,
       }));
+
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : null;
 
     return {
       props: {
         business: {
-          id: business.id,
-          name: business.name,
-          slug: business.slug,
-          suburb: business.suburb ?? null,
-          city: business.city ?? null,
-          state: business.state ?? null,
-          bio: business.bio ?? null,
+          id:              business.id,
+          name:            business.name,
+          slug:            business.slug,
+          suburb:          business.suburb          ?? null,
+          city:            business.city            ?? null,
+          state:           business.state           ?? null,
+          bio:             business.bio             ?? null,
           instagramHandle: business.instagramHandle ?? null,
-          avgRating: business.avgRating ?? null,
+          verified:        business.verified,
+          avgRating,
           services: business.services.map((s) => ({
-            id: s.id,
-            name: s.name,
-            price: s.price,
+            id:            s.id,
+            name:          s.name,
+            price:         s.price,
             originalPrice: s.originalPrice ?? null,
-            durationMin: s.durationMin,
-            category: s.category ?? null,
-            description: s.description ?? null,
+            durationMin:   s.durationMin,
+            category:      s.category     ?? null,
+            description:   s.description  ?? null,
           })),
           reviews,
         },
       },
     };
   } catch (err) {
-    console.error('[getServerSideProps /businesses/[slug]]', err);
+    console.error('[slug] SSP error:', err);
     return { props: { business: null } };
+  } finally {
+    await prisma.$disconnect();
   }
 };
