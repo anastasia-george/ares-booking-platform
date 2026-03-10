@@ -79,23 +79,30 @@ export default function OnboardPage() {
     finally { setSaving(false); }
   };
 
-  const inputCls = 'w-full text-2xl border-b-2 border-gray-200 focus:border-pink-500 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors';
+  const inputCls = 'w-full text-2xl border-b-2 border-gray-200 focus:border-teal-600 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors';
 
   // ── Done screen ──
   if (step > TOTAL_STEPS) {
     return (
       <>
         <Head><title>You're listed! | ModelCall</title></Head>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-white">
-          <div className="text-7xl mb-6">🎉</div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">You're all set!</h1>
-          <p className="text-gray-400 text-lg max-w-sm mb-10">
-            Head to your dashboard to set your availability and start receiving models.
-          </p>
-          <button onClick={() => (window.location.href = '/dashboard')}
-            className="px-10 py-4 bg-gray-900 hover:bg-gray-700 text-white rounded-full font-semibold text-lg transition">
-            Go to Dashboard
-          </button>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: '#0F172A' }}>
+          {/* Glow */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden>
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full opacity-20 blur-3xl" style={{ backgroundColor: '#0D9488' }} />
+          </div>
+          <div className="relative">
+            <div className="text-7xl mb-6">🎉</div>
+            <h1 className="text-4xl font-extrabold text-white mb-3">You&rsquo;re listed!</h1>
+            <p className="text-lg max-w-sm mb-10" style={{ color: '#94A3B8' }}>
+              Head to your dashboard to set your availability and start receiving models.
+            </p>
+            <button onClick={() => (window.location.href = '/dashboard')}
+              className="px-10 py-4 rounded-full font-bold text-lg text-white shadow-lg transition hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg,#0D9488,#065F46)' }}>
+              Go to Dashboard →
+            </button>
+          </div>
         </div>
       </>
     );
@@ -106,10 +113,10 @@ export default function OnboardPage() {
       <Head><title>List Your Business | ModelCall</title></Head>
       <div className="min-h-screen flex flex-col bg-white">
 
-        {/* Thin progress bar */}
-        <div className="h-1 bg-gray-100">
-          <div className="h-full bg-pink-500 transition-all duration-500"
-            style={{ width: `${((step - 1) / TOTAL_STEPS) * 100}%` }} />
+        {/* Progress bar */}
+        <div className="h-1" style={{ backgroundColor: '#F1F5F9' }}>
+          <div className="h-full transition-all duration-500"
+            style={{ width: `${((step - 1) / TOTAL_STEPS) * 100}%`, background: 'linear-gradient(to right,#0D9488,#06B6D4)' }} />
         </div>
 
         {/* Step content */}
@@ -123,7 +130,7 @@ export default function OnboardPage() {
             {/* Step 1 — Business name */}
             {step === 1 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">What's your business called?</h2>
                 <p className="text-gray-400 mb-10">This is what models will see on the marketplace.</p>
                 <input autoFocus value={form.name} onChange={e => set('name', e.target.value)}
@@ -135,7 +142,7 @@ export default function OnboardPage() {
             {/* Step 2 — Location */}
             {step === 2 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Where are you based?</h2>
                 <p className="text-gray-400 mb-10">Models search by suburb and city.</p>
                 <div className="space-y-8">
@@ -151,8 +158,8 @@ export default function OnboardPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">State</p>
-                    <select value={form.state} onChange={e => set('state', e.target.value)}
-                      className="w-full text-xl border-b-2 border-gray-200 focus:border-pink-500 outline-none py-3 bg-transparent transition-colors">
+                  <select value={form.state} onChange={e => set('state', e.target.value)}
+                      className="w-full text-xl border-b-2 border-gray-200 focus:border-teal-600 outline-none py-3 bg-transparent transition-colors">
                       {AUS_STATES.map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
@@ -163,12 +170,12 @@ export default function OnboardPage() {
             {/* Step 3 — Bio */}
             {step === 3 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Tell models about yourself</h2>
                 <p className="text-gray-400 mb-10">What makes your practice special?</p>
                 <textarea autoFocus value={form.bio} onChange={e => set('bio', e.target.value)}
                   rows={4} placeholder="I'm specialising in volume lashes and love working with new models…"
-                  className="w-full text-xl border-b-2 border-gray-200 focus:border-pink-500 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors resize-none" />
+                  className="w-full text-xl border-b-2 border-gray-200 focus:border-teal-600 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors resize-none" />
                 <p className="text-xs text-gray-300 mt-3">Optional</p>
               </div>
             )}
@@ -176,10 +183,10 @@ export default function OnboardPage() {
             {/* Step 4 — Instagram */}
             {step === 4 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Your Instagram handle</h2>
                 <p className="text-gray-400 mb-10">Models love to browse your work before booking.</p>
-                <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-teal-600 transition-colors">
                   <span className="text-2xl text-gray-300 mr-1">@</span>
                   <input autoFocus value={form.instagramHandle} onChange={e => set('instagramHandle', e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleNext()}
@@ -193,7 +200,7 @@ export default function OnboardPage() {
             {/* Step 5 — Treatment name */}
             {step === 5 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Name your first model call</h2>
                 <p className="text-gray-400 mb-10">What treatment are you offering?</p>
                 <input autoFocus value={form.serviceName} onChange={e => set('serviceName', e.target.value)}
@@ -205,18 +212,17 @@ export default function OnboardPage() {
             {/* Step 6 — Category */}
             {step === 6 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">What category?</h2>
                 <p className="text-gray-400 mb-10">Helps models filter by treatment type.</p>
                 <div className="flex flex-wrap gap-3">
                   {CATEGORIES.map(cat => (
                     <button key={cat}
                       onClick={() => { setForm(p => ({ ...p, category: cat })); setStep(s => s + 1); }}
-                      className={`px-5 py-2.5 rounded-full border-2 font-medium transition text-sm ${
-                        form.category === cat
-                          ? 'border-pink-500 bg-pink-500 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-pink-300'
-                      }`}>
+                      className="px-5 py-2.5 rounded-full border-2 font-semibold transition text-sm"
+                      style={form.category === cat
+                        ? { borderColor: '#0D9488', backgroundColor: '#0D9488', color: '#fff' }
+                        : { borderColor: '#E2E8F0', color: '#64748B' }}>
                       {cat}
                     </button>
                   ))}
@@ -227,13 +233,13 @@ export default function OnboardPage() {
             {/* Step 7 — Pricing */}
             {step === 7 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Set your pricing</h2>
                 <p className="text-gray-400 mb-10">Show models exactly how much they're saving.</p>
                 <div className="space-y-10">
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Full retail price</p>
-                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-teal-600 transition-colors">
                       <span className="text-2xl text-gray-300 mr-2">$</span>
                       <input autoFocus type="number" min={0} value={form.originalPrice}
                         onChange={e => set('originalPrice', e.target.value)}
@@ -243,7 +249,7 @@ export default function OnboardPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Model call price — enter 0 for FREE</p>
-                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-teal-600 transition-colors">
                       <span className="text-2xl text-gray-300 mr-2">$</span>
                       <input type="number" min={0} value={form.modelPrice}
                         onChange={e => set('modelPrice', e.target.value)}
@@ -258,18 +264,17 @@ export default function OnboardPage() {
             {/* Step 8 — Duration */}
             {step === 8 && (
               <div>
-                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <p className="font-semibold text-sm mb-3" style={{ color: '#0D9488' }}>{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">How long does it take?</h2>
                 <p className="text-gray-400 mb-10">Tap to select, then hit &ldquo;List my business&rdquo;.</p>
                 <div className="flex flex-wrap gap-3">
                   {DURATIONS.map(d => (
                     <button key={d}
                       onClick={() => setForm(p => ({ ...p, durationMin: d }))}
-                      className={`px-5 py-3 rounded-xl border-2 font-medium transition text-sm ${
-                        form.durationMin === d
-                          ? 'border-pink-500 bg-pink-500 text-white'
-                          : 'border-gray-200 text-gray-600 hover:border-pink-300'
-                      }`}>
+                      className="px-5 py-3 rounded-xl border-2 font-semibold transition text-sm"
+                      style={form.durationMin === d
+                        ? { borderColor: '#0D9488', backgroundColor: '#0D9488', color: '#fff' }
+                        : { borderColor: '#E2E8F0', color: '#64748B' }}>
                       {fmtDuration(d)}
                     </button>
                   ))}
@@ -291,12 +296,11 @@ export default function OnboardPage() {
           <button
             onClick={handleNext}
             disabled={!canNext() || saving}
-            className={`px-8 py-3 rounded-full font-semibold text-sm transition ${
-              canNext() && !saving
-                ? 'bg-gray-900 hover:bg-gray-700 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
-            }`}>
-            {saving ? 'Saving…' : step === TOTAL_STEPS ? 'List my business' : 'Next'}
+            className="px-8 py-3 rounded-full font-bold text-sm transition"
+            style={canNext() && !saving
+              ? { background: 'linear-gradient(135deg,#0D9488,#065F46)', color: '#fff' }
+              : { backgroundColor: '#F1F5F9', color: '#CBD5E1', cursor: 'not-allowed' }}>
+            {saving ? 'Saving…' : step === TOTAL_STEPS ? '🚀 List my business' : 'Next →'}
           </button>
         </div>
 

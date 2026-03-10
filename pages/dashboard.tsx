@@ -16,32 +16,38 @@ interface Props {
 
 export default function Dashboard({ businessId, businessName, ownerEmail }: Props) {
   return (
-    <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <Head>
-        <title>Business Dashboard | Ares</title>
+        <title>{businessName} — Dashboard | Model Call</title>
       </Head>
 
-      <nav className="bg-white shadow">
+      {/* Dashboard nav banner */}
+      <div style={{ backgroundColor: '#0F172A' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="font-bold text-xl">{businessName}</div>
-            <div className="flex items-center gap-4 text-sm">
-              <Link href="/business/setup" className="text-indigo-600 hover:underline">
-                Setup
-              </Link>
-              <span className="text-gray-500">{ownerEmail}</span>
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="text-red-600 hover:text-red-800 underline"
-              >
-                Sign Out
-              </button>
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-extrabold text-white"
+                style={{ background: 'linear-gradient(135deg,#0D9488,#065F46)' }}>
+                {businessName[0]}
+              </div>
+              <span className="font-bold text-white text-sm">{businessName}</span>
+              <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: 'rgba(13,148,136,0.2)', color: '#0D9488' }}>Dashboard</span>
+            </div>
+            <div className="flex items-center gap-4 text-xs">
+              <Link href="/business/setup"
+                className="font-semibold hover:opacity-80 transition"
+                style={{ color: '#0D9488' }}>Setup</Link>
+              <span className="hidden sm:inline" style={{ color: '#64748B' }}>{ownerEmail}</span>
+              <button onClick={() => signOut({ callbackUrl: '/' })}
+                className="font-semibold hover:opacity-80 transition"
+                style={{ color: '#94A3B8' }}>Sign Out</button>
             </div>
           </div>
         </div>
-      </nav>
+      </div>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <BusinessDashboard businessId={businessId} />
       </main>
     </div>
