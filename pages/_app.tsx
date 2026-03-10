@@ -3,8 +3,24 @@ import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { SessionProvider, useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/router';
+
+// ── Brand logo mark — M silhouette + teal dot ──────────────────────────────
+function LogoMark({ size = 28, dark = true }: { size?: number; dark?: boolean }) {
+  const stroke = dark ? '#0F172A' : '#FFFFFF';
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
+      <circle cx="16" cy="5.5" r="3.5" fill="#0D9488" />
+      <path
+        d="M2 28 L10.5 13 L16 21 L21.5 13 L30 28"
+        stroke={stroke}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const FULL_SCREEN_ROUTES = ['/onboard'];
 
@@ -24,9 +40,9 @@ function NavBar() {
     <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-[#E2E8F0]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
-        {/* Logo — text + teal dot */}
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          <span className="w-2 h-2 rounded-full bg-[#0D9488] shrink-0" />
+          <LogoMark size={28} dark={true} />
           <span className="text-xl font-extrabold text-[#0F172A] tracking-tight">Model Call</span>
         </Link>
 
@@ -85,7 +101,7 @@ function Footer() {
           {/* Brand */}
           <div className="max-w-xs">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+              <LogoMark size={26} dark={false} />
               <span className="text-lg font-extrabold text-white tracking-tight">Model Call</span>
             </div>
             <p className="text-sm text-[#4B5563] leading-relaxed">

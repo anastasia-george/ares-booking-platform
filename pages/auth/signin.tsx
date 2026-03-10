@@ -6,6 +6,22 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { Mail, ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
 
+function LogoMark({ size = 28, dark = true }: { size?: number; dark?: boolean }) {
+  const stroke = dark ? '#0F172A' : '#FFFFFF';
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
+      <circle cx="16" cy="5.5" r="3.5" fill="#0D9488" />
+      <path
+        d="M2 28 L10.5 13 L16 21 L21.5 13 L30 28"
+        stroke={stroke}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function SignIn() {
   const [email, setEmail]       = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -55,7 +71,7 @@ export default function SignIn() {
           {/* Logo */}
           <div className="relative z-10 p-10">
             <Link href="/" className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#0D9488]" />
+              <LogoMark size={30} dark={false} />
               <span className="text-xl font-extrabold text-white tracking-tight">Model Call</span>
             </Link>
           </div>
@@ -83,7 +99,7 @@ export default function SignIn() {
 
             {/* Mobile logo */}
             <Link href="/" className="flex items-center gap-2 mb-10 lg:hidden">
-              <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+              <LogoMark size={26} dark={true} />
               <span className="text-lg font-extrabold text-[#0F172A] tracking-tight">Model Call</span>
             </Link>
 
