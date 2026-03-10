@@ -11,67 +11,46 @@ const FULL_SCREEN_ROUTES = ['/onboard'];
 function NavBar() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isActive = (path: string) => router.pathname === path || (path === '/' && router.pathname === '/');
-  const linkStyle = (path: string) => isActive(path) ? { color: '#0D9488' } : { color: '#64748B' };
+  const isActive = (path: string) => router.pathname === path;
+
+  const navLink = (path: string, label: string) => (
+    <Link href={path}
+      className={`text-sm font-semibold transition-all duration-150 hover:text-[#0D9488] ${isActive(path) ? 'text-[#0D9488]' : 'text-[#64748B]'}`}>
+      {label}
+    </Link>
+  );
 
   return (
-    <nav className="bg-white sticky top-0 z-50" style={{ borderBottom: '1px solid #E2E8F0' }}>
+    <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-[#E2E8F0]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center shrink-0">
-          <Image src="/brand/lockup-light.svg" alt="Model Call" width={148} height={36} priority />
+        {/* Logo — text + teal dot */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          <span className="w-2 h-2 rounded-full bg-[#0D9488] shrink-0" />
+          <span className="text-xl font-extrabold text-[#0F172A] tracking-tight">Model Call</span>
         </Link>
 
-        {/* Center nav links */}
+        {/* Center links */}
         <div className="hidden md:flex items-center gap-7">
-          <Link href="/#browse"
-            className="text-sm font-semibold transition-colors hover:opacity-80"
-            style={{ color: '#64748B' }}>
-            Browse Treatments
-          </Link>
-          <Link href="/for-businesses"
-            className="text-sm font-semibold transition-colors hover:opacity-80"
-            style={linkStyle('/for-businesses')}>
-            For Businesses
-          </Link>
-          <Link href="/#how-it-works"
-            className="text-sm font-semibold transition-colors hover:opacity-80"
-            style={{ color: '#64748B' }}>
-            How it Works
-          </Link>
-          {/* Authenticated extras */}
-          {(session?.user?.role === 'BUSINESS_OWNER' || session?.user?.role === 'ADMIN') && (
-            <Link href="/dashboard"
-              className="text-sm font-semibold transition-colors hover:opacity-80"
-              style={linkStyle('/dashboard')}>
-              Dashboard
-            </Link>
-          )}
-          {session && (
-            <Link href="/my-bookings"
-              className="text-sm font-semibold transition-colors hover:opacity-80"
-              style={linkStyle('/my-bookings')}>
-              My Bookings
-            </Link>
-          )}
+          {navLink('/#browse',      'Browse')}
+          {navLink('/for-businesses','For Businesses')}
+          {navLink('/#how-it-works', 'How it Works')}
+          {(session?.user?.role === 'BUSINESS_OWNER' || session?.user?.role === 'ADMIN') &&
+            navLink('/dashboard', 'Dashboard')}
+          {session && navLink('/my-bookings', 'My Bookings')}
         </div>
 
-        {/* Right: auth buttons */}
+        {/* Right: auth */}
         <div className="flex items-center gap-2.5">
           {status !== 'loading' && (
             !session ? (
               <>
-                <button
-                  onClick={() => signIn()}
-                  className="hidden sm:inline-flex px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all hover:bg-gray-50"
-                  style={{ borderColor: '#0F172A', color: '#0F172A' }}>
+                <button onClick={() => signIn()}
+                  className="hidden sm:inline-flex items-center px-5 py-2 rounded-full text-sm font-semibold border-2 border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white transition-all duration-200">
                   Log In
                 </button>
-                <button
-                  onClick={() => signIn()}
-                  className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                  style={{ backgroundColor: '#0D9488' }}>
+                <button onClick={() => signIn()}
+                  className="bg-[#0D9488] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-teal-700 transition-all duration-200 shadow-sm">
                   Sign Up
                 </button>
               </>
@@ -79,15 +58,12 @@ function NavBar() {
               <div className="flex items-center gap-3">
                 {session?.user?.role !== 'BUSINESS_OWNER' && session?.user?.role !== 'ADMIN' && (
                   <Link href="/onboard"
-                    className="hidden sm:inline-flex px-4 py-2 border-2 rounded-xl text-sm font-bold transition-all hover:bg-gray-50"
-                    style={{ borderColor: '#0D9488', color: '#0D9488' }}>
+                    className="hidden sm:inline-flex px-5 py-2 rounded-full text-sm font-semibold border-2 border-[#0D9488] text-[#0D9488] hover:bg-[#0D9488] hover:text-white transition-all duration-200">
                     List a Service
                   </Link>
                 )}
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="text-sm font-medium transition hover:opacity-70"
-                  style={{ color: '#94A3B8' }}>
+                <button onClick={() => signOut({ callbackUrl: '/' })}
+                  className="text-sm font-medium text-[#94A3B8] hover:text-[#64748B] transition-colors">
                   Sign Out
                 </button>
               </div>
@@ -100,52 +76,53 @@ function NavBar() {
 }
 
 function Footer() {
-  const linkCls = 'text-sm transition-colors hover:opacity-80';
-  const linkStyle = { color: '#64748B' };
-
+  const col = 'text-sm text-[#64748B] hover:text-white transition-colors duration-150';
   return (
-    <footer style={{ backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+    <footer className="bg-[#0F172A]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
         <div className="flex flex-col md:flex-row justify-between gap-10">
 
           {/* Brand */}
           <div className="max-w-xs">
-            <Image src="/brand/lockup-light.svg" alt="Model Call" width={140} height={36} />
-            <p className="mt-3 text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+              <span className="text-lg font-extrabold text-white tracking-tight">Model Call</span>
+            </div>
+            <p className="text-sm text-[#4B5563] leading-relaxed">
               Australia&rsquo;s marketplace for free and discounted beauty model calls.
             </p>
           </div>
 
-          {/* Link columns */}
+          {/* Columns */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Platform</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Platform</p>
               <ul className="space-y-3">
-                <li><Link href="/#browse" className={linkCls} style={linkStyle}>Browse Treatments</Link></li>
-                <li><Link href="/for-models" className={linkCls} style={linkStyle}>For Models</Link></li>
-                <li><Link href="/for-businesses" className={linkCls} style={linkStyle}>For Businesses</Link></li>
-                <li><Link href="/onboard" className={linkCls} style={linkStyle}>List a Service</Link></li>
+                <li><Link href="/#browse"        className={col}>Browse Treatments</Link></li>
+                <li><Link href="/for-models"     className={col}>For Models</Link></li>
+                <li><Link href="/for-businesses" className={col}>For Businesses</Link></li>
+                <li><Link href="/onboard"        className={col}>List a Service</Link></li>
               </ul>
             </div>
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Company</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Company</p>
               <ul className="space-y-3">
-                <li><Link href="/about" className={linkCls} style={linkStyle}>About Us</Link></li>
-                <li><Link href="/faq" className={linkCls} style={linkStyle}>FAQ</Link></li>
-                <li><Link href="mailto:hello@modelcall.app" className={linkCls} style={linkStyle}>Contact</Link></li>
+                <li><Link href="/about"                    className={col}>About Us</Link></li>
+                <li><Link href="/faq"                      className={col}>FAQ</Link></li>
+                <li><Link href="mailto:hello@modelcall.app" className={col}>Contact</Link></li>
               </ul>
             </div>
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Legal</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Legal</p>
               <ul className="space-y-3">
-                <li><Link href="/legal/privacy" className={linkCls} style={linkStyle}>Privacy Policy</Link></li>
-                <li><Link href="/legal/terms" className={linkCls} style={linkStyle}>Terms of Service</Link></li>
+                <li><Link href="/legal/privacy" className={col}>Privacy Policy</Link></li>
+                <li><Link href="/legal/terms"   className={col}>Terms of Service</Link></li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 text-xs text-center" style={{ borderTop: '1px solid #E2E8F0', color: '#94A3B8' }}>
+        <div className="mt-10 pt-6 border-t border-[#1E293B] text-xs text-center text-[#374151]">
           &copy; {new Date().getFullYear()} Model Call. All rights reserved.
         </div>
       </div>
@@ -161,7 +138,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <SessionProvider session={session as never}>
       {!hideShell && <NavBar />}
-      <main className="min-h-screen">
+      <main className={`min-h-screen${!hideShell ? ' pt-16' : ''}`}>
         <Component {...rest} />
       </main>
       {!hideShell && <Footer />}
