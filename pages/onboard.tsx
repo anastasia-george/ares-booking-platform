@@ -1,367 +1,304 @@
-// pages/onboard.tsx — 3-step business onboarding wizard
+// pages/onboard.tsx — Airbnb-style full-screen onboarding
 import { GetServerSideProps } from 'next';
 import { getServerSession } from 'next-auth/next';
 import Head from 'next/head';
 import { useState } from 'react';
-import { useRouter } from 'next/router';
 import { authOptions } from '../lib/auth';
 
 const CATEGORIES = ['Lashes', 'Nails', 'Facials', 'Hair', 'Brows', 'Makeup', 'Waxing', 'Massage', 'Other'];
 const AUS_STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
+const DURATIONS = [30, 45, 60, 75, 90, 105, 120, 150, 180];
+const TOTAL_STEPS = 8;
 
-interface Step1State {
-  name: string;
-  suburb: string;
-  city: string;
-  state: string;
-  bio: string;
-  instagramHandle: string;
+interface Form {
+  name: string; suburb: string; city: string; state: string;
+  bio: string; instagramHandle: string;
+  serviceName: string; category: string;
+  originalPrice: string; modelPrice: string;
+  durationMin: number;
 }
 
-interface Step2State {
-  serviceName: string;
-  category: string;
-  originalPrice: string;
-  modelPrice: string;
-  durationMin: string;
-  description: string;
+function fmtDuration(m: number) {
+  return m < 60 ? `${m}m` : m % 60 === 0 ? `${m / 60}h` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }
-
-const inputCls =
-  'mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400';
-const labelCls = 'block text-sm font-medium text-gray-700';
 
 export default function OnboardPage() {
-  const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [createdBizId, setCreatedBizId] = useState('');
-
-  const [step1, setStep1] = useState<Step1State>({
-    name: '',
-    suburb: '',
-    city: '',
-    state: 'NSW',
-    bio: '',
-    instagramHandle: '',
+  const [form, setForm] = useState<Form>({
+    name: '', suburb: '', city: '', state: 'NSW',
+    bio: '', instagramHandle: '',
+    serviceName: '', category: '',
+    originalPrice: '', modelPrice: '0',
+    durationMin: 60,
   });
 
-  const [step2, setStep2] = useState<Step2State>({
-    serviceName: '',
-    category: 'Lashes',
-    originalPrice: '',
-    modelPrice: '0',
-    durationMin: '60',
-    description: '',
-  });
+  const set = (k: keyof Form, v: string | number) => setForm(p => ({ ...p, [k]: v }));
 
-  const handleStep1 = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!step1.name.trim()) {
-      setError('Business name is required');
-      return;
-    }
-    setSaving(true);
-    setError('');
-    try {
-      const res = await fetch('/api/business', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(step1),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? 'Failed to create business');
-        return;
-      }
-      setCreatedBizId(data.id);
-      setStep(2);
-    } catch {
-      setError('Network error — please try again');
-    } finally {
-      setSaving(false);
-    }
+  const canNext = () => {
+    if (step === 1) return form.name.trim().length > 0;
+    if (step === 5) return form.serviceName.trim().length > 0;
+    if (step === 6) return form.category.length > 0;
+    return true;
   };
 
-  const handleStep2 = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!step2.serviceName.trim()) {
-      setError('Service name is required');
-      return;
-    }
-    setSaving(true);
+  const handleNext = async () => {
     setError('');
+    if (step < TOTAL_STEPS) { setStep(s => s + 1); return; }
+    // Final step — submit everything
+    setSaving(true);
     try {
-      const res = await fetch(`/api/business/${createdBizId}/services`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      let bizId = createdBizId;
+      if (!bizId) {
+        const r = await fetch('/api/business', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name, suburb: form.suburb || null, city: form.city || null,
+            state: form.state || null, bio: form.bio || null,
+            instagramHandle: form.instagramHandle || null,
+          }),
+        });
+        const d = await r.json();
+        if (!r.ok) { setError(d.error ?? 'Failed to create business'); return; }
+        bizId = d.id; setCreatedBizId(bizId);
+      }
+      const sr = await fetch(`/api/business/${bizId}/services`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: step2.serviceName.trim(),
-          category: step2.category,
-          originalPrice: step2.originalPrice
-            ? Math.round(parseFloat(step2.originalPrice) * 100)
-            : null,
-          price: Math.round(parseFloat(step2.modelPrice || '0') * 100),
-          durationMin: parseInt(step2.durationMin, 10) || 60,
-          description: step2.description.trim() || null,
+          name: form.serviceName, category: form.category,
+          originalPrice: form.originalPrice ? Math.round(parseFloat(form.originalPrice) * 100) : null,
+          price: Math.round(parseFloat(form.modelPrice || '0') * 100),
+          durationMin: form.durationMin,
         }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        setError(d.error ?? 'Failed to create service');
-        return;
-      }
-      setStep(3);
-    } catch {
-      setError('Network error — please try again');
-    } finally {
-      setSaving(false);
-    }
+      if (!sr.ok) { const d = await sr.json(); setError(d.error ?? 'Failed'); return; }
+      setStep(TOTAL_STEPS + 1);
+    } catch { setError('Network error — please try again'); }
+    finally { setSaving(false); }
   };
+
+  const inputCls = 'w-full text-2xl border-b-2 border-gray-200 focus:border-pink-500 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors';
+
+  // ── Done screen ──
+  if (step > TOTAL_STEPS) {
+    return (
+      <>
+        <Head><title>You're listed! | ModelCall</title></Head>
+        <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-white">
+          <div className="text-7xl mb-6">🎉</div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">You're all set!</h1>
+          <p className="text-gray-400 text-lg max-w-sm mb-10">
+            Head to your dashboard to set your availability and start receiving models.
+          </p>
+          <button onClick={() => (window.location.href = '/dashboard')}
+            className="px-10 py-4 bg-gray-900 hover:bg-gray-700 text-white rounded-full font-semibold text-lg transition">
+            Go to Dashboard
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      <Head>
-        <title>List Your Business | ModelCall</title>
-      </Head>
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4">
-        <div className="w-full max-w-lg">
-          {/* Progress bar */}
-          <div className="flex items-center mb-8">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center flex-1">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 transition ${
-                    step >= s ? 'bg-pink-500 text-white' : 'bg-gray-200 text-gray-400'
-                  }`}
-                >
-                  {s}
-                </div>
-                {s < 3 && (
-                  <div
-                    className={`flex-1 h-1 mx-1 rounded transition ${
-                      step > s ? 'bg-pink-400' : 'bg-gray-200'
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+      <Head><title>List Your Business | ModelCall</title></Head>
+      <div className="min-h-screen flex flex-col bg-white">
 
-          <div className="bg-white rounded-2xl shadow-sm border p-8">
+        {/* Thin progress bar */}
+        <div className="h-1 bg-gray-100">
+          <div className="h-full bg-pink-500 transition-all duration-500"
+            style={{ width: `${((step - 1) / TOTAL_STEPS) * 100}%` }} />
+        </div>
+
+        {/* Step content */}
+        <div className="flex-1 flex items-center justify-center px-6 py-16">
+          <div className="w-full max-w-lg">
+
             {error && (
-              <p className="mb-4 text-sm text-red-600 bg-red-50 rounded-lg p-3">{error}</p>
+              <div className="mb-6 text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">{error}</div>
             )}
 
-            {/* ---- Step 1: Business basics ---- */}
+            {/* Step 1 — Business name */}
             {step === 1 && (
-              <form onSubmit={handleStep1} className="space-y-4">
-                <div className="mb-2">
-                  <h2 className="text-xl font-bold text-gray-900">About your business</h2>
-                  <p className="text-sm text-gray-500 mt-1">Tell models where to find you.</p>
-                </div>
-
-                <label className={labelCls}>
-                  Business name *
-                  <input
-                    required
-                    value={step1.name}
-                    onChange={(e) => setStep1((p) => ({ ...p, name: e.target.value }))}
-                    className={inputCls}
-                    placeholder="e.g. Glow Lash Studio"
-                  />
-                </label>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <label className={labelCls}>
-                    Suburb
-                    <input
-                      value={step1.suburb}
-                      onChange={(e) => setStep1((p) => ({ ...p, suburb: e.target.value }))}
-                      className={inputCls}
-                      placeholder="e.g. Surry Hills"
-                    />
-                  </label>
-                  <label className={labelCls}>
-                    City
-                    <input
-                      value={step1.city}
-                      onChange={(e) => setStep1((p) => ({ ...p, city: e.target.value }))}
-                      className={inputCls}
-                      placeholder="e.g. Sydney"
-                    />
-                  </label>
-                </div>
-
-                <label className={labelCls}>
-                  State
-                  <select
-                    value={step1.state}
-                    onChange={(e) => setStep1((p) => ({ ...p, state: e.target.value }))}
-                    className={inputCls}
-                  >
-                    {AUS_STATES.map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className={labelCls}>
-                  Bio
-                  <textarea
-                    value={step1.bio}
-                    onChange={(e) => setStep1((p) => ({ ...p, bio: e.target.value }))}
-                    rows={3}
-                    className={inputCls}
-                    placeholder="Tell models what makes your practice special…"
-                  />
-                </label>
-
-                <label className={labelCls}>
-                  Instagram handle
-                  <div className="mt-1 flex rounded-lg border border-gray-300 overflow-hidden focus-within:ring-2 focus-within:ring-pink-400">
-                    <span className="px-3 py-2.5 bg-gray-50 text-gray-500 text-sm border-r">@</span>
-                    <input
-                      value={step1.instagramHandle}
-                      onChange={(e) => setStep1((p) => ({ ...p, instagramHandle: e.target.value }))}
-                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
-                      placeholder="yourstudio"
-                    />
-                  </div>
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white rounded-xl font-semibold transition"
-                >
-                  {saving ? 'Saving…' : 'Next: Add your first service →'}
-                </button>
-              </form>
-            )}
-
-            {/* ---- Step 2: First model-call service ---- */}
-            {step === 2 && (
-              <form onSubmit={handleStep2} className="space-y-4">
-                <div className="mb-2">
-                  <h2 className="text-xl font-bold text-gray-900">Your first model call</h2>
-                  <p className="text-sm text-gray-500 mt-1">Set your treatment details and model call price.</p>
-                </div>
-
-                <label className={labelCls}>
-                  Treatment name *
-                  <input
-                    required
-                    value={step2.serviceName}
-                    onChange={(e) => setStep2((p) => ({ ...p, serviceName: e.target.value }))}
-                    className={inputCls}
-                    placeholder="e.g. Classic Full Set Lashes"
-                  />
-                </label>
-
-                <label className={labelCls}>
-                  Category
-                  <select
-                    value={step2.category}
-                    onChange={(e) => setStep2((p) => ({ ...p, category: e.target.value }))}
-                    className={inputCls}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <label className={labelCls}>
-                    Full retail price ($)
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={step2.originalPrice}
-                      onChange={(e) => setStep2((p) => ({ ...p, originalPrice: e.target.value }))}
-                      className={inputCls}
-                      placeholder="e.g. 120"
-                    />
-                  </label>
-                  <label className={labelCls}>
-                    Model call price ($)
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      value={step2.modelPrice}
-                      onChange={(e) => setStep2((p) => ({ ...p, modelPrice: e.target.value }))}
-                      className={inputCls}
-                      placeholder="0 = FREE"
-                    />
-                  </label>
-                </div>
-
-                <label className={labelCls}>
-                  Duration (minutes)
-                  <input
-                    type="number"
-                    min={15}
-                    step={15}
-                    value={step2.durationMin}
-                    onChange={(e) => setStep2((p) => ({ ...p, durationMin: e.target.value }))}
-                    className={inputCls}
-                  />
-                </label>
-
-                <label className={labelCls}>
-                  Description
-                  <textarea
-                    value={step2.description}
-                    onChange={(e) => setStep2((p) => ({ ...p, description: e.target.value }))}
-                    rows={2}
-                    className={inputCls}
-                    placeholder="What's included?"
-                  />
-                </label>
-
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => { setStep(1); setError(''); }}
-                    className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium text-sm hover:bg-gray-50 transition"
-                  >
-                    ← Back
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 py-3 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white rounded-xl font-semibold transition"
-                  >
-                    {saving ? 'Saving…' : 'Next →'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* ---- Step 3: Done ---- */}
-            {step === 3 && (
-              <div className="text-center space-y-5 py-4">
-                <div className="text-5xl">🎉</div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">You&apos;re listed!</h2>
-                  <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">
-                    Set your availability and booking policy in your dashboard to start receiving models.
-                  </p>
-                </div>
-                <button
-                  onClick={() => (window.location.href = '/dashboard')}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-semibold transition"
-                >
-                  Go to Dashboard →
-                </button>
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">What's your business called?</h2>
+                <p className="text-gray-400 mb-10">This is what models will see on the marketplace.</p>
+                <input autoFocus value={form.name} onChange={e => set('name', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && canNext() && handleNext()}
+                  className={inputCls} placeholder="e.g. Glow Lash Studio" />
               </div>
             )}
+
+            {/* Step 2 — Location */}
+            {step === 2 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Where are you based?</h2>
+                <p className="text-gray-400 mb-10">Models search by suburb and city.</p>
+                <div className="space-y-8">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Suburb</p>
+                    <input autoFocus value={form.suburb} onChange={e => set('suburb', e.target.value)}
+                      className={inputCls} placeholder="e.g. Surry Hills" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">City</p>
+                    <input value={form.city} onChange={e => set('city', e.target.value)}
+                      className={inputCls} placeholder="e.g. Sydney" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">State</p>
+                    <select value={form.state} onChange={e => set('state', e.target.value)}
+                      className="w-full text-xl border-b-2 border-gray-200 focus:border-pink-500 outline-none py-3 bg-transparent transition-colors">
+                      {AUS_STATES.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 — Bio */}
+            {step === 3 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Tell models about yourself</h2>
+                <p className="text-gray-400 mb-10">What makes your practice special?</p>
+                <textarea autoFocus value={form.bio} onChange={e => set('bio', e.target.value)}
+                  rows={4} placeholder="I'm specialising in volume lashes and love working with new models…"
+                  className="w-full text-xl border-b-2 border-gray-200 focus:border-pink-500 outline-none pt-2 pb-3 bg-transparent placeholder-gray-300 transition-colors resize-none" />
+                <p className="text-xs text-gray-300 mt-3">Optional</p>
+              </div>
+            )}
+
+            {/* Step 4 — Instagram */}
+            {step === 4 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Your Instagram handle</h2>
+                <p className="text-gray-400 mb-10">Models love to browse your work before booking.</p>
+                <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                  <span className="text-2xl text-gray-300 mr-1">@</span>
+                  <input autoFocus value={form.instagramHandle} onChange={e => set('instagramHandle', e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleNext()}
+                    className="flex-1 text-2xl outline-none py-3 bg-transparent placeholder-gray-300"
+                    placeholder="yourstudio" />
+                </div>
+                <p className="text-xs text-gray-300 mt-3">Optional</p>
+              </div>
+            )}
+
+            {/* Step 5 — Treatment name */}
+            {step === 5 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Name your first model call</h2>
+                <p className="text-gray-400 mb-10">What treatment are you offering?</p>
+                <input autoFocus value={form.serviceName} onChange={e => set('serviceName', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && canNext() && handleNext()}
+                  className={inputCls} placeholder="e.g. Classic Full Set Lashes" />
+              </div>
+            )}
+
+            {/* Step 6 — Category */}
+            {step === 6 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">What category?</h2>
+                <p className="text-gray-400 mb-10">Helps models filter by treatment type.</p>
+                <div className="flex flex-wrap gap-3">
+                  {CATEGORIES.map(cat => (
+                    <button key={cat}
+                      onClick={() => { set('category', cat); setTimeout(handleNext, 200); }}
+                      className={`px-5 py-2.5 rounded-full border-2 font-medium transition text-sm ${
+                        form.category === cat
+                          ? 'border-pink-500 bg-pink-500 text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-pink-300'
+                      }`}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 7 — Pricing */}
+            {step === 7 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">Set your pricing</h2>
+                <p className="text-gray-400 mb-10">Show models exactly how much they're saving.</p>
+                <div className="space-y-10">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Full retail price</p>
+                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                      <span className="text-2xl text-gray-300 mr-2">$</span>
+                      <input autoFocus type="number" min={0} value={form.originalPrice}
+                        onChange={e => set('originalPrice', e.target.value)}
+                        className="flex-1 text-2xl outline-none py-3 bg-transparent placeholder-gray-300"
+                        placeholder="120" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Model call price — enter 0 for FREE</p>
+                    <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-pink-500 transition-colors">
+                      <span className="text-2xl text-gray-300 mr-2">$</span>
+                      <input type="number" min={0} value={form.modelPrice}
+                        onChange={e => set('modelPrice', e.target.value)}
+                        className="flex-1 text-2xl outline-none py-3 bg-transparent placeholder-gray-300"
+                        placeholder="0" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 8 — Duration */}
+            {step === 8 && (
+              <div>
+                <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
+                <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">How long does it take?</h2>
+                <p className="text-gray-400 mb-10">Models need to know how to plan their day.</p>
+                <div className="flex flex-wrap gap-3">
+                  {DURATIONS.map(d => (
+                    <button key={d} onClick={() => set('durationMin', d)}
+                      className={`px-5 py-3 rounded-xl border-2 font-medium transition text-sm ${
+                        form.durationMin === d
+                          ? 'border-pink-500 bg-pink-500 text-white'
+                          : 'border-gray-200 text-gray-600 hover:border-pink-300'
+                      }`}>
+                      {fmtDuration(d)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
+
+        {/* Sticky footer nav */}
+        <div className="border-t bg-white px-6 py-5 flex justify-between items-center">
+          {step > 1 ? (
+            <button onClick={() => { setError(''); setStep(s => s - 1); }}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-900 underline underline-offset-2 transition">
+              Back
+            </button>
+          ) : <div />}
+          <button
+            onClick={handleNext}
+            disabled={!canNext() || saving}
+            className={`px-8 py-3 rounded-full font-semibold text-sm transition ${
+              canNext() && !saving
+                ? 'bg-gray-900 hover:bg-gray-700 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+            }`}>
+            {saving ? 'Saving…' : step === TOTAL_STEPS ? 'List my business' : 'Next'}
+          </button>
+        </div>
+
       </div>
     </>
   );
