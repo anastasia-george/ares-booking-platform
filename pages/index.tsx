@@ -1,711 +1,613 @@
-// pages/index.tsx — ModelCall homepage + marketplace directory
+// pages/index.tsx
 import { GetServerSideProps } from 'next';
-import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useState } from 'react';
-import prisma from '../lib/prisma';
+import { useSession, signIn } from 'next-auth/react';
+import { PrismaClient } from '@prisma/client';
 
-const CATEGORIES = ['All', 'Lashes', 'Nails', 'Facials', 'Hair', 'Brows', 'Makeup', 'Waxing', 'Massage', 'Injectables'];
+// ---------------------------------------------------------------------------
+// Inline SVG Icon Components (Heroicons-style)
+// ---------------------------------------------------------------------------
+function IconSearch() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+    </svg>
+  );
+}
+function IconCalendar() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+    </svg>
+  );
+}
+function IconSparkles() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    </svg>
+  );
+}
+function IconMegaphone() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5.882V19.24a1.76 1.76 0 0 1-3.417.592l-2.147-6.15M18 13a3 3 0 1 0 0-6M5.436 13.683A4.001 4.001 0 0 1 7.028 8H13l4.028 9.81A4 4 0 0 1 13 21H7.028a4.001 4.001 0 0 1-1.592-7.317z" />
+    </svg>
+  );
+}
+function IconUsers() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+    </svg>
+  );
+}
+function IconStar() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 0 0 .95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 0 0-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 0 0-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 0 0-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 0 0 .951-.69l1.519-4.674z" />
+    </svg>
+  );
+}
 
+// ---------------------------------------------------------------------------
+// Image map
+// ---------------------------------------------------------------------------
+const CAT_IMAGES: Record<string, string> = {
+  Injectables:  'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?q=80&w=800&auto=format&fit=crop',
+  Lashes:       'https://images.unsplash.com/photo-1512496015851-a9083832c668?q=80&w=800&auto=format&fit=crop',
+  Brows:        'https://images.unsplash.com/photo-1512496015851-a9083832c668?q=80&w=800&auto=format&fit=crop',
+  Hair:         'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=800&auto=format&fit=crop',
+  Skin:         'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+  Facials:      'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
+  Waxing:       'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800&auto=format&fit=crop',
+  Nails:        'https://images.unsplash.com/photo-1604654894610-df63bc536371?q=80&w=800&auto=format&fit=crop',
+  Massage:      'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop',
+  Makeup:       'https://images.unsplash.com/photo-1503236823255-94609f598e71?q=80&w=800&auto=format&fit=crop',
+};
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop';
+
+function catImage(category: string | null | undefined): string {
+  if (!category) return FALLBACK_IMAGE;
+  return CAT_IMAGES[category] ?? FALLBACK_IMAGE;
+}
+
+// ---------------------------------------------------------------------------
+// Data
+// ---------------------------------------------------------------------------
+const CATEGORIES = [
+  'Injectables', 'Lashes', 'Brows', 'Hair', 'Skin',
+  'Facials', 'Waxing', 'Nails', 'Massage', 'Makeup',
+];
+
+const FEATURED_CATS = [
+  { label: 'Injectables', category: 'Injectables', image: CAT_IMAGES['Injectables'] },
+  { label: 'Lashes & Brows', category: 'Lashes',       image: CAT_IMAGES['Lashes'] },
+  { label: 'Hair',           category: 'Hair',          image: CAT_IMAGES['Hair'] },
+  { label: 'Skin & Facials', category: 'Facials',       image: CAT_IMAGES['Facials'] },
+  { label: 'Nails',          category: 'Nails',         image: CAT_IMAGES['Nails'] },
+  { label: 'Massage',        category: 'Massage',       image: CAT_IMAGES['Massage'] },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "Found an amazing lash artist in 5 minutes. Saved me $180 and the results were stunning.",
+    author: 'Chloe M.',
+    location: 'Sydney',
+    avatar: 'https://i.pravatar.cc/80?img=47',
+  },
+  {
+    quote: "My injectables business is fully booked every week now. Game-changer for finding models.",
+    author: 'Sarah K.',
+    location: 'Melbourne',
+    avatar: 'https://i.pravatar.cc/80?img=45',
+  },
+  {
+    quote: "The booking process is so smooth. Got a free facial at a top salon — it was incredible.",
+    author: 'Priya T.',
+    location: 'Brisbane',
+    avatar: 'https://i.pravatar.cc/80?img=32',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 interface ServiceSnippet {
   id: string;
   name: string;
   price: number;
   originalPrice: number | null;
-  durationMin: number;
   category: string | null;
+  durationMin: number;
+  business: {
+    name: string;
+    slug: string;
+    suburb: string | null;
+    state: string | null;
+    verified: boolean;
+  };
 }
 
 interface BusinessCard {
-  id: string;
-  name: string;
   slug: string;
+  name: string;
   suburb: string | null;
-  city: string | null;
   state: string | null;
-  avgRating: number | null;
-  services: ServiceSnippet[];
+  verified: boolean;
+  category: string | null;
+  minPrice: number;
+  serviceCount: number;
 }
 
 interface Props {
-  businesses: BusinessCard[];
-  total: number;
-  filters: { q: string; suburb: string; category: string; maxPrice: string };
+  listings: BusinessCard[];
+  error?: string;
 }
 
-// ─── Gradient + emoji helpers ─────────────────────────────────────────────────
-
-const CAT_GRADIENTS: Record<string, string> = {
-  Lashes:      'linear-gradient(135deg,#f9a8d4 0%,#9d174d 100%)',
-  Nails:       'linear-gradient(135deg,#c4b5fd 0%,#5b21b6 100%)',
-  Facials:     'linear-gradient(135deg,#fde68a 0%,#b45309 100%)',
-  Hair:        'linear-gradient(135deg,#7dd3fc 0%,#1d4ed8 100%)',
-  Brows:       'linear-gradient(135deg,#86efac 0%,#15803d 100%)',
-  Makeup:      'linear-gradient(135deg,#fca5a5 0%,#b91c1c 100%)',
-  Waxing:      'linear-gradient(135deg,#6ee7b7 0%,#065f46 100%)',
-  Massage:     'linear-gradient(135deg,#a5b4fc 0%,#3730a3 100%)',
-  Injectables: 'linear-gradient(135deg,#67e8f9 0%,#0e7490 100%)',
-  Other:       'linear-gradient(135deg,#94a3b8 0%,#334155 100%)',
-};
-const DEFAULT_GRADIENT = 'linear-gradient(135deg,#0D9488 0%,#0F172A 100%)';
-function catGradient(cat: string | null) {
-  return cat && CAT_GRADIENTS[cat] ? CAT_GRADIENTS[cat] : DEFAULT_GRADIENT;
-}
-const CAT_EMOJIS: Record<string, string> = {
-  Lashes: '👁️', Nails: '💅', Facials: '🧖', Hair: '💇',
-  Brows: '🪮', Makeup: '💄', Waxing: '✨', Massage: '🙌',
-  Injectables: '💉', Other: '⭐',
-};
-function catEmoji(cat: string | null) {
-  return cat && CAT_EMOJIS[cat] ? CAT_EMOJIS[cat] : '✨';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function applyFilters(
+  listings: BusinessCard[],
+  cat: string,
+  loc: string,
+  search: string,
+): BusinessCard[] {
+  return listings.filter((b) => {
+    if (cat && b.category !== cat) return false;
+    if (loc && !`${b.suburb ?? ''} ${b.state ?? ''}`.toLowerCase().includes(loc.toLowerCase())) return false;
+    if (search && !b.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 }
 
-// ─── Static page data ─────────────────────────────────────────────────────────
+function hasFilters(cat: string, loc: string, search: string) {
+  return !!(cat || loc || search);
+}
 
-const FEATURED_CATS = [
-  {
-    label: 'Injectables & Cosmetic',
-    emoji: '💉',
-    desc: 'Anti-wrinkle, lip filler & cosmetic consultations',
-    gradient: 'linear-gradient(135deg,#67e8f9 0%,#0e7490 100%)',
-    slug: 'Injectables',
-  },
-  {
-    label: 'Lashes & Brows',
-    emoji: '👁️',
-    desc: 'Extensions, lifts, lamination & brow design',
-    gradient: 'linear-gradient(135deg,#f9a8d4 0%,#9d174d 100%)',
-    slug: 'Lashes',
-  },
-  {
-    label: 'Hair Styling & Color',
-    emoji: '💇',
-    desc: 'Cuts, balayage, keratin treatments & blow-drys',
-    gradient: 'linear-gradient(135deg,#7dd3fc 0%,#1d4ed8 100%)',
-    slug: 'Hair',
-  },
-  {
-    label: 'Skin & Laser',
-    emoji: '🧖',
-    desc: 'Facials, peels, laser & skin consultations',
-    gradient: 'linear-gradient(135deg,#fde68a 0%,#b45309 100%)',
-    slug: 'Facials',
-  },
-];
+function previewListings(listings: BusinessCard[], n = 6): BusinessCard[] {
+  return listings.slice(0, n);
+}
 
-const MOCK_LISTINGS: BusinessCard[] = [
-  {
-    id: 'mock-1', name: 'Lip Filler Model Needed', slug: '',
-    suburb: 'Surry Hills', city: 'Sydney', state: 'NSW', avgRating: 5.0,
-    services: [{ id: 's1', name: 'Lip Filler', price: 0, originalPrice: 49900, durationMin: 45, category: 'Injectables' }],
-  },
-  {
-    id: 'mock-2', name: 'Volume Lash Extensions', slug: '',
-    suburb: 'Prahran', city: 'Melbourne', state: 'VIC', avgRating: 5.0,
-    services: [{ id: 's2', name: 'Volume Lash Set', price: 0, originalPrice: 18000, durationMin: 90, category: 'Lashes' }],
-  },
-  {
-    id: 'mock-3', name: 'Balayage Colour Model', slug: '',
-    suburb: 'Newtown', city: 'Sydney', state: 'NSW', avgRating: 4.9,
-    services: [{ id: 's3', name: 'Full Balayage', price: 2000, originalPrice: 32000, durationMin: 180, category: 'Hair' }],
-  },
-];
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+export default function Home({ listings }: Props) {
+  const { data: session } = useSession();
+  const [cat, setCat]       = useState('');
+  const [loc, setLoc]       = useState('');
+  const [search, setSearch] = useState('');
 
-const TESTIMONIALS = [
-  {
-    quote: "I got a full set of lashes for free and the student was incredibly skilled. The booking took 30 seconds — I'll be back every month.",
-    name: 'Emily R.', role: 'Model, Sydney', tag: 'Model', tagColor: '#0D9488',
-  },
-  {
-    quote: "We filled 4 training slots in a single day. No more chasing people through Facebook groups or DMing hundreds of followers.",
-    name: 'Priya M.', role: 'Clinic Director, Polished by Priya', tag: 'Clinic Director', tagColor: '#6366F1',
-  },
-  {
-    quote: "Finally an easy way to find model calls near me. The whole booking experience felt professional — like a real app should.",
-    name: 'Jess T.', role: 'Model, Melbourne', tag: 'Model', tagColor: '#0D9488',
-  },
-];
-
-// ─── Page component ───────────────────────────────────────────────────────────
-
-export default function Home({ businesses, total, filters }: Props) {
-  const router = useRouter();
-  const [q, setQ]           = useState(filters.q);
-  const [suburb, setSuburb] = useState(filters.suburb);
-  const [category, setCategory] = useState(filters.category || 'All');
-  const [maxPrice, setMaxPrice] = useState(filters.maxPrice);
-  const hasFilters = !!(filters.q || filters.suburb || filters.category || filters.maxPrice);
-
-  function applyFilters(overrides?: Partial<typeof filters>) {
-    const params = new URLSearchParams();
-    const f = { q, suburb, category, maxPrice, ...overrides };
-    if (f.q)                             params.set('q',        f.q);
-    if (f.suburb)                        params.set('suburb',   f.suburb);
-    if (f.category && f.category !== 'All') params.set('category', f.category);
-    if (f.maxPrice)                      params.set('maxPrice', f.maxPrice);
-    router.push(`/?${params.toString()}`);
-  }
-
-  const previewListings = businesses.length > 0 ? businesses.slice(0, 3) : MOCK_LISTINGS;
+  const filtered  = applyFilters(listings, cat, loc, search);
+  const showing   = hasFilters(cat, loc, search) ? filtered : previewListings(listings, 6);
+  const showMore  = !hasFilters(cat, loc, search) && listings.length > 6;
 
   return (
     <>
-      <Head>
-        <title>Model Call — Free &amp; Discounted Beauty Treatments Across Australia</title>
-        <meta name="description" content="Book free and discounted beauty model calls across Australia. Find lashes, injectables, facials, nails and more from talented students and professionals." />
-      </Head>
+      {/* ------------------------------------------------------------------ */}
+      {/* HERO                                                                */}
+      {/* ------------------------------------------------------------------ */}
+      <section
+        className="relative min-h-[92vh] flex items-center justify-center overflow-hidden"
+        style={{
+          backgroundImage: `url('https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=2000&auto=format&fit=crop')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-[#0F172A]/55" />
 
-      {/* ══════════════════════════════════════════════════════════════
-          A.  HERO
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section className="min-h-[85vh] flex items-center justify-center bg-[#F8FAFC] py-20 px-6 relative overflow-hidden">
-          {/* bg blobs */}
-          <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute -top-40 -right-32 w-[560px] h-[560px] rounded-full bg-[#0D9488] opacity-[0.06] blur-3xl" />
-            <div className="absolute bottom-0 -left-24 w-80 h-80 rounded-full bg-[#0F172A] opacity-[0.04] blur-3xl" />
-          </div>
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          {/* Eyebrow pill */}
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase bg-white/15 border border-white/30 text-white mb-6">
+            Australia&rsquo;s Beauty Model Call Marketplace
+          </span>
 
-          <div className="relative max-w-4xl mx-auto text-center">
-            {/* Eyebrow */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold tracking-[0.18em] uppercase mb-8 bg-[#0D9488]/10 text-[#0D9488]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0D9488] animate-pulse" />
-              Australia&rsquo;s Beauty Marketplace
-            </div>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.05] mb-6">
+            Premium Beauty.<br />
+            <span className="text-[#0D9488]">Free or Discounted.</span>
+          </h1>
 
-            {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-[#0F172A] tracking-tighter leading-[1.02] mb-6">
-              Australia&rsquo;s<br />
-              <span className="text-[#0D9488]">Beauty Marketplace.</span>
-            </h1>
-
-            {/* Sub */}
-            <p className="text-xl text-[#64748B] mb-10 max-w-2xl mx-auto leading-relaxed">
-              Discover free and discounted treatments from talented students and industry
-              professionals across Australia.
-            </p>
-
-            {/* CTA buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <a href="#browse"
-                className="bg-[#0D9488] text-white px-8 py-4 rounded-full font-semibold shadow-lg shadow-[#0D9488]/30 hover:scale-105 hover:shadow-xl hover:shadow-[#0D9488]/40 transition-all duration-200 text-base w-full sm:w-auto text-center min-w-[200px]">
-                Browse Treatments
-              </a>
-              <Link href="/onboard"
-                className="bg-white border-2 border-[#0F172A] text-[#0F172A] px-8 py-4 rounded-full font-semibold hover:bg-[#0F172A] hover:text-white transition-all duration-200 text-base w-full sm:w-auto text-center min-w-[200px]">
-                List a Service
-              </Link>
-            </div>
-
-            {/* Trust line */}
-            <p className="text-xs text-[#94A3B8] tracking-[0.18em] uppercase mb-10">
-              ✓&nbsp; Trusted by 500+ top clinics and academies across Australia
-            </p>
-
-            {/* Stats */}
-            <div className="flex flex-wrap justify-center gap-8 sm:gap-14">
-              {[
-                { stat: '10k+', label: 'Treatments Available' },
-                { stat: '500+', label: 'Rated Businesses'     },
-                { stat: '100%', label: 'Vetted & Verified'    },
-              ].map(({ stat, label }) => (
-                <div key={stat} className="text-center">
-                  <p className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tighter">{stat}</p>
-                  <p className="text-xs text-[#94A3B8] mt-1 font-medium uppercase tracking-widest">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          B.  HOW IT WORKS — 2-column side by side
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section id="how-it-works" className="py-24 bg-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-
-            <div className="text-center mb-16">
-              <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-3">How it works</p>
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tighter">
-                How Model Call Works
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              {/* For Models ─ cream card */}
-              <div className="bg-[#F8FAFC] p-8 sm:p-10 rounded-3xl border border-gray-100 hover:shadow-xl transition-all duration-300">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D9488]/10 text-[#0D9488] mb-6 uppercase tracking-[0.15em]">
-                  For Models &amp; Customers
-                </div>
-                <h3 className="text-2xl font-extrabold text-[#0F172A] mb-8 tracking-tight">Get glam. Save big.</h3>
-                <div className="space-y-7">
-                  {[
-                    { icon: '🔍', step: '01', title: 'Search',       desc: 'Find discounted treatments near you — filter by city, category, or price.' },
-                    { icon: '📅', step: '02', title: 'Apply & Book', desc: 'Secure your spot instantly with zero phone calls, DMs, or queues.' },
-                    { icon: '✨', step: '03', title: 'Get Glam',     desc: 'Show up, enjoy a premium service for a fraction of the cost, and leave glowing.' },
-                  ].map((s) => (
-                    <div key={s.title} className="flex items-start gap-4">
-                      <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 shadow-sm"
-                        style={{ background: 'linear-gradient(135deg,#0D9488,#065F46)' }}>
-                        {s.icon}
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#0D9488] mb-0.5">{s.step}</p>
-                        <p className="font-extrabold text-[#0F172A] mb-1">{s.title}</p>
-                        <p className="text-sm text-[#64748B] leading-relaxed">{s.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link href="/for-models"
-                  className="inline-flex items-center gap-2 mt-9 text-sm font-bold text-[#0D9488] group hover:gap-3 transition-all duration-200">
-                  Learn more about being a model
-                  <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-                </Link>
-              </div>
-
-              {/* For Businesses ─ dark navy card */}
-              <div className="bg-[#0F172A] p-8 sm:p-10 rounded-3xl hover:shadow-2xl transition-all duration-300 relative overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-[#0D9488] opacity-10 blur-3xl pointer-events-none" />
-                <div className="relative">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D9488]/20 text-[#0D9488] mb-6 uppercase tracking-[0.15em]">
-                    For Clinics &amp; Academies
-                  </div>
-                  <h3 className="text-2xl font-extrabold text-white mb-8 tracking-tight">Fill every seat. Build your brand.</h3>
-                  <div className="space-y-7">
-                    {[
-                      { icon: '📣', step: '01', title: 'Post a Call',    desc: 'List your training days or open slots in under two minutes.' },
-                      { icon: '💺', step: '02', title: 'Fill Seats',      desc: 'Reliable, motivated models book instantly — no chasing needed.' },
-                      { icon: '⭐', step: '03', title: 'Build Portfolio', desc: 'Collect verified reviews, grow your reputation, and attract clients.' },
-                    ].map((s) => (
-                      <div key={s.title} className="flex items-start gap-4">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-[#0D9488]/20 border border-[#0D9488]/30">
-                          {s.icon}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#0D9488] mb-0.5">{s.step}</p>
-                          <p className="font-extrabold text-white mb-1">{s.title}</p>
-                          <p className="text-sm text-[#94A3B8] leading-relaxed">{s.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Link href="/for-businesses"
-                    className="inline-flex items-center gap-2 mt-9 text-sm font-bold text-[#0D9488] group hover:gap-3 transition-all duration-200">
-                    Why businesses choose Model Call
-                    <span className="group-hover:translate-x-1 transition-transform duration-200">→</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          C.  FEATURED CATEGORIES
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section className="py-24 bg-[#F8FAFC]">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="text-center mb-12">
-              <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-3">Categories</p>
-              <h2 className="text-4xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tighter">
-                Popular Treatments
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {FEATURED_CATS.map((c) => (
-                <button key={c.label}
-                  onClick={() => { setCategory(c.slug); applyFilters({ category: c.slug }); }}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 flex flex-col items-center justify-center text-center cursor-pointer border-2 border-transparent hover:border-[#0D9488] group">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-5 shadow-md group-hover:scale-110 transition-transform duration-300"
-                    style={{ background: c.gradient }}>
-                    {c.emoji}
-                  </div>
-                  <h3 className="font-extrabold text-[#0F172A] text-sm mb-2 leading-snug">{c.label}</h3>
-                  <p className="text-xs text-[#94A3B8] leading-relaxed mb-4">{c.desc}</p>
-                  <span className="text-xs font-bold text-[#0D9488] flex items-center gap-1 group-hover:gap-2 transition-all duration-200">
-                    Browse <span className="group-hover:translate-x-0.5 transition-transform duration-200">→</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="text-center mt-10">
-              <button
-                onClick={() => { setCategory('All'); applyFilters({ category: '' }); }}
-                className="text-sm font-bold text-[#0D9488] hover:opacity-70 transition-opacity">
-                View All Categories →
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          D.  LIVE LISTINGS PREVIEW
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section className="py-20 bg-white">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-              <div>
-                <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">Live Listings</p>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tighter">
-                  Available Near You
-                </h2>
-              </div>
-              <a href="#browse"
-                className="inline-flex items-center gap-1 text-sm font-bold text-[#0D9488] hover:gap-2 transition-all duration-200 shrink-0">
-                View all listings <span>→</span>
-              </a>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {previewListings.map((biz) => {
-                const featured   = biz.services[0];
-                const isFree     = featured?.price === 0;
-                const hasDiscount = !isFree && featured?.originalPrice && featured.originalPrice > featured.price;
-                const grad       = catGradient(featured?.category ?? null);
-                const emoji      = catEmoji(featured?.category ?? null);
-                const href       = biz.slug ? `/businesses/${biz.slug}` : '/#browse';
-                return (
-                  <Link key={biz.id} href={href}
-                    className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col bg-white">
-                    {/* Gradient image placeholder — h-48 */}
-                    <div className="h-48 relative flex items-center justify-center overflow-hidden"
-                      style={{ background: grad }}>
-                      <div className="absolute inset-0 opacity-[0.08]"
-                        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                      <span className="text-6xl select-none relative z-10 group-hover:scale-110 transition-transform duration-300 drop-shadow-lg">
-                        {emoji}
-                      </span>
-                      {isFree && (
-                        <span className="absolute top-3 left-3 bg-[#0D9488] text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg">
-                          FREE
-                        </span>
-                      )}
-                      {hasDiscount && (
-                        <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-lg">
-                          DISCOUNT
-                        </span>
-                      )}
-                      {biz.avgRating && (
-                        <span className="absolute top-3 right-3 bg-black/30 text-yellow-300 text-xs font-semibold px-2.5 py-1.5 rounded-full backdrop-blur-sm flex items-center gap-1">
-                          ★ {biz.avgRating.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Body */}
-                    <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-extrabold text-[#0F172A] text-base mb-1 leading-snug">{biz.name}</h3>
-                      {(biz.suburb || biz.city) && (
-                        <p className="text-sm text-[#94A3B8] mb-2 flex items-center gap-1">
-                          <span>📍</span>
-                          {[biz.suburb, biz.city].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {featured && (
-                        <p className="text-xs text-[#64748B] mb-3 truncate">
-                          {featured.name} &middot; {featured.durationMin} min
-                        </p>
-                      )}
-                      {featured && (
-                        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className={`font-extrabold text-xl ${isFree ? 'text-[#0D9488]' : 'text-[#0F172A]'}`}>
-                              {isFree ? 'Free' : `$${(featured.price / 100).toFixed(0)}`}
-                            </span>
-                            {featured.originalPrice && featured.originalPrice > featured.price && (
-                              <span className="text-xs line-through text-[#CBD5E1] font-medium">
-                                ${(featured.originalPrice / 100).toFixed(0)}
-                              </span>
-                            )}
-                          </div>
-                          <span className="bg-[#0D9488] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-teal-700 transition-colors cursor-pointer">
-                            Apply Now
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          E.  TESTIMONIALS — dark navy
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section className="py-24 bg-[#0F172A] text-white relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#0D9488] opacity-[0.05] blur-3xl" />
-          </div>
-          <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="text-center mb-16">
-              <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-3">Testimonials</p>
-              <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tighter">
-                Elevating the beauty industry,<br className="hidden sm:block" /> together.
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name}
-                  className="bg-white/10 p-8 rounded-2xl backdrop-blur-sm border border-white/20 flex flex-col hover:-translate-y-1.5 transition-all duration-300">
-                  <div className="text-yellow-400 text-xl tracking-wider mb-5">★★★★★</div>
-                  <span className="inline-block self-start text-xs font-bold px-3 py-1 rounded-full mb-5"
-                    style={{ backgroundColor: `${t.tagColor}25`, color: t.tagColor }}>
-                    {t.tag}
-                  </span>
-                  <p className="text-[#CBD5E1] leading-relaxed flex-1 mb-7 text-[15px]">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  <div className="flex items-center gap-3 pt-5 border-t border-white/10">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-extrabold text-white shrink-0"
-                      style={{ background: `linear-gradient(135deg,${t.tagColor} 0%,#0F172A 100%)` }}>
-                      {t.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">{t.name}</p>
-                      <p className="text-xs text-[#64748B]">{t.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          F.  CTA BANNER — electric teal
-      ══════════════════════════════════════════════════════════════ */}
-      {!hasFilters && (
-        <section className="bg-[#0D9488] py-20 text-center text-white relative overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none" aria-hidden>
-            <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
-            <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-white/5" />
-          </div>
-          <div className="relative max-w-3xl mx-auto px-4 sm:px-6">
-            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tighter mb-5">
-              Join thousands of models<br className="hidden sm:block" /> and professionals today.
-            </h2>
-            <p className="text-white/80 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-              Create a free account and start booking — or list your first service in under two minutes.
-            </p>
-            <Link href="/onboard"
-              className="inline-block bg-white text-[#0D9488] px-10 py-4 rounded-full font-bold text-base hover:scale-105 transition-all duration-200 shadow-2xl">
-              Create Free Account
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          G.  SEARCH + FULL LISTINGS
-      ══════════════════════════════════════════════════════════════ */}
-      <section id="browse" className="py-16 bg-[#F8FAFC]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-
-          {!hasFilters && (
-            <div className="mb-10">
-              <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">Browse All</p>
-              <h2 className="text-3xl font-extrabold text-[#0F172A] tracking-tight">All Listings</h2>
-            </div>
-          )}
-
-          {/* Search bar */}
-          <div className="bg-white rounded-2xl shadow-sm border border-[#E2E8F0] p-5 mb-8">
-            <form onSubmit={(e) => { e.preventDefault(); applyFilters(); }}
-              className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text" placeholder="Search treatments, businesses…" value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="flex-1 px-4 py-3 border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 text-[#0F172A] placeholder:text-[#94A3B8]"
-              />
-              <input
-                type="text" placeholder="Suburb or city" value={suburb}
-                onChange={(e) => setSuburb(e.target.value)}
-                className="w-full sm:w-44 px-4 py-3 border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30 text-[#0F172A] placeholder:text-[#94A3B8]"
-              />
-              <button type="submit"
-                className="px-6 py-3 bg-[#0D9488] text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition-colors">
-                Search
-              </button>
-            </form>
-
-            {/* Category pills */}
-            <div className="flex gap-2 flex-wrap mt-4 items-center">
-              {CATEGORIES.map((cat) => (
-                <button key={cat}
-                  onClick={() => { setCategory(cat); applyFilters({ category: cat }); }}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-150 ${
-                    category === cat
-                      ? 'bg-[#0D9488] text-white border-[#0D9488]'
-                      : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#0D9488] hover:text-[#0D9488]'
-                  }`}>
-                  {cat}
-                </button>
-              ))}
-              <div className="ml-auto flex items-center gap-2">
-                <label className="text-xs text-[#64748B] whitespace-nowrap">Max $</label>
-                <input type="number" min={0} placeholder="Any" value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)} onBlur={() => applyFilters()}
-                  className="w-20 px-2 py-1.5 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none text-[#0F172A]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <p className="text-sm text-[#64748B] mb-5 font-medium">
-            {total} {total === 1 ? 'listing' : 'listings'} found
+          <p className="text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Connect with talented beauty professionals seeking models. Get world-class treatments
+            at a fraction of the price — or nothing at all.
           </p>
 
-          {businesses.length === 0 ? (
-            <div className="text-center py-24">
-              <div className="text-5xl mb-4">🔍</div>
-              <p className="text-lg font-extrabold mb-2 text-[#0F172A]">No listings found</p>
-              <p className="text-sm mb-6 text-[#94A3B8]">Try a different suburb, category, or clear your filters.</p>
-              <Link href="/" className="inline-block px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0D9488] hover:bg-teal-700 transition-colors">
-                Clear filters
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
+            <a
+              href="#browse"
+              className="px-8 py-4 rounded-full font-bold text-base bg-[#0D9488] text-white hover:bg-teal-600 transition-all duration-200 shadow-lg shadow-teal-900/30"
+            >
+              Find a Treatment
+            </a>
+            {!session ? (
+              <button
+                onClick={() => signIn()}
+                className="px-8 py-4 rounded-full font-bold text-base border-2 border-white text-white hover:bg-white hover:text-[#0F172A] transition-all duration-200"
+              >
+                List a Service
+              </button>
+            ) : (
+              <Link
+                href="/onboard"
+                className="px-8 py-4 rounded-full font-bold text-base border-2 border-white text-white hover:bg-white hover:text-[#0F172A] transition-all duration-200"
+              >
+                List a Service
               </Link>
+            )}
+          </div>
+
+          {/* Stat pills */}
+          <div className="flex flex-wrap justify-center gap-3">
+            {[
+              { label: 'Free or discounted treatments' },
+              { label: 'Verified beauty professionals' },
+              { label: 'Trusted by Australians' },
+            ].map((s) => (
+              <span
+                key={s.label}
+                className="px-4 py-2 rounded-full text-xs font-medium bg-white/10 backdrop-blur-sm border border-white/20 text-white"
+              >
+                {s.label}
+              </span>
+            ))}
+          </div>
+
+          <p className="mt-6 text-xs text-white/60">
+            No hidden fees. No spam. Just great beauty at an honest price.
+          </p>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* CATEGORY CARDS                                                      */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="bg-[#F8FAFC] py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="mb-10">
+            <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">
+              Browse by Category
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A]">
+              Every treatment, one place.
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {FEATURED_CATS.map((fc) => (
+              <a
+                key={fc.category}
+                href={`#browse`}
+                onClick={() => setCat(fc.category)}
+                className="group relative h-64 rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-shadow duration-300"
+              >
+                <img
+                  src={fc.image}
+                  alt={fc.label}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 p-4">
+                  <p className="text-white font-bold text-sm leading-tight">{fc.label}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* HOW IT WORKS                                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <section id="how-it-works" className="bg-white py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">
+              Simple by design
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A]">How it works</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-16">
+            {/* For Models */}
+            <div>
+              <h3 className="text-lg font-bold text-[#0F172A] mb-8 flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#0D9488] text-white text-xs font-bold flex items-center justify-center">M</span>
+                For Models
+              </h3>
+              <div className="space-y-8">
+                {[
+                  { Icon: IconSearch,   step: '01', title: 'Browse listings',     desc: 'Find free or discounted beauty treatments near you across every category.' },
+                  { Icon: IconCalendar, step: '02', title: 'Book instantly',       desc: 'Choose a time that works for you. Confirmation in seconds.' },
+                  { Icon: IconSparkles, step: '03', title: 'Get pampered',         desc: 'Turn up, enjoy the treatment, and leave a review.' },
+                ].map(({ Icon, step, title, desc }) => (
+                  <div key={step} className="flex gap-5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#0D9488] to-teal-700 flex items-center justify-center text-white shrink-0 shadow-md shadow-teal-900/20">
+                      <Icon />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#94A3B8] mb-0.5">Step {step}</p>
+                      <p className="font-bold text-[#0F172A] mb-1">{title}</p>
+                      <p className="text-sm text-[#64748B] leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* For Businesses */}
+            <div>
+              <h3 className="text-lg font-bold text-[#0F172A] mb-8 flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#0F172A] text-white text-xs font-bold flex items-center justify-center">B</span>
+                For Businesses
+              </h3>
+              <div className="space-y-8">
+                {[
+                  { Icon: IconMegaphone, step: '01', title: 'List your model call',   desc: 'Post a free or discounted service in minutes. Reach thousands of local models.' },
+                  { Icon: IconUsers,     step: '02', title: 'Get qualified bookings', desc: 'Models apply and book directly — your calendar fills automatically.' },
+                  { Icon: IconStar,      step: '03', title: 'Build your portfolio',   desc: 'Collect reviews, grow your reputation, and turn models into loyal clients.' },
+                ].map(({ Icon, step, title, desc }) => (
+                  <div key={step} className="flex gap-5">
+                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#0F172A] to-slate-700 flex items-center justify-center text-white shrink-0 shadow-md shadow-slate-900/20">
+                      <Icon />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#94A3B8] mb-0.5">Step {step}</p>
+                      <p className="font-bold text-[#0F172A] mb-1">{title}</p>
+                      <p className="text-sm text-[#64748B] leading-relaxed">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* BROWSE / LISTINGS                                                   */}
+      {/* ------------------------------------------------------------------ */}
+      <section id="browse" className="bg-[#F8FAFC] py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+            <div>
+              <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">
+                Live Model Calls
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A]">
+                {hasFilters(cat, loc, search)
+                  ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} found`
+                  : 'Browse all listings'}
+              </h2>
+            </div>
+          </div>
+
+          {/* Filter bar */}
+          <div className="grid sm:grid-cols-3 gap-3 mb-10">
+            <select
+              value={cat}
+              onChange={(e) => setCat(e.target.value)}
+              className="w-full border border-[#E2E8F0] rounded-xl px-4 py-3 text-sm bg-white text-[#0F172A] font-medium focus:outline-none focus:ring-2 focus:ring-[#0D9488]/40"
+            >
+              <option value="">All categories</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Suburb or city..."
+              value={loc}
+              onChange={(e) => setLoc(e.target.value)}
+              className="w-full border border-[#E2E8F0] rounded-xl px-4 py-3 text-sm bg-white text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#0D9488]/40"
+            />
+            <input
+              type="text"
+              placeholder="Search business name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full border border-[#E2E8F0] rounded-xl px-4 py-3 text-sm bg-white text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#0D9488]/40"
+            />
+          </div>
+
+          {/* Cards */}
+          {showing.length === 0 ? (
+            <div className="text-center py-24 text-[#94A3B8]">
+              <p className="text-lg font-semibold mb-2">No listings found</p>
+              <p className="text-sm">Try adjusting your filters or check back soon.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {businesses.map((biz) => {
-                const featured = biz.services[0];
-                const isFree   = featured?.price === 0;
-                return (
-                  <Link key={biz.id} href={`/businesses/${biz.slug}`}
-                    className="bg-white rounded-2xl shadow-sm border border-[#E2E8F0] hover:shadow-xl hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col group">
-                    <div className="relative h-28 flex items-center justify-center overflow-hidden"
-                      style={{ background: catGradient(featured?.category ?? null) }}>
-                      <span className="text-5xl select-none group-hover:scale-110 transition-transform duration-300 ease-out">
-                        {catEmoji(featured?.category ?? null)}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {showing.map((biz) => (
+                <Link
+                  key={biz.slug}
+                  href={`/businesses/${biz.slug}`}
+                  className="group bg-white rounded-2xl overflow-hidden border border-[#E2E8F0] hover:border-[#0D9488]/40 hover:shadow-lg transition-all duration-300"
+                >
+                  {/* Photo */}
+                  <div className="h-48 relative overflow-hidden">
+                    <img
+                      src={catImage(biz.category)}
+                      alt={biz.category ?? ''}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                    {biz.verified && (
+                      <span className="absolute top-3 right-3 bg-[#0D9488] text-white text-[10px] font-bold px-2.5 py-1 rounded-full">
+                        Verified
                       </span>
-                      {isFree && (
-                        <span className="absolute top-3 left-3 text-xs font-extrabold tracking-wider px-2.5 py-1 rounded-full text-white bg-[#0D9488]">
-                          FREE
-                        </span>
-                      )}
-                      {biz.avgRating && (
-                        <span className="absolute top-3 right-3 text-xs font-semibold px-2 py-1 rounded-full bg-black/30 text-yellow-300 backdrop-blur-sm">
-                          ★ {biz.avgRating.toFixed(1)}
-                        </span>
-                      )}
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-bold text-[#0F172A] text-base leading-snug line-clamp-1 group-hover:text-[#0D9488] transition-colors">
+                        {biz.name}
+                      </h3>
+                      <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-full ${
+                        biz.minPrice === 0
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-[#F0FDFA] text-[#0D9488]'
+                      }`}>
+                        {biz.minPrice === 0 ? 'FREE' : `From $${(biz.minPrice / 100).toFixed(0)}`}
+                      </span>
                     </div>
-                    <div className="p-5 flex flex-col flex-1">
-                      <h2 className="font-bold text-base leading-snug mb-1 text-[#0F172A]">{biz.name}</h2>
-                      {(biz.suburb || biz.city) && (
-                        <p className="text-xs mb-3 text-[#94A3B8]">
-                          📍 {[biz.suburb, biz.city].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      {featured && (
-                        <div className="mt-auto pt-3 border-t border-slate-100">
-                          <p className="text-sm font-medium mb-2 truncate text-[#64748B]">{featured.name}</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1.5">
-                              <span className={`text-xl font-extrabold ${isFree ? 'text-[#0D9488]' : 'text-[#0F172A]'}`}>
-                                {isFree ? 'FREE' : `$${(featured.price / 100).toFixed(0)}`}
-                              </span>
-                              {featured.originalPrice && featured.originalPrice > featured.price && (
-                                <span className="text-xs line-through font-medium text-[#CBD5E1]">
-                                  ${(featured.originalPrice / 100).toFixed(0)}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs font-medium px-2 py-1 rounded-lg bg-[#F1F5F9] text-[#64748B]">
-                              {featured.durationMin} min
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                    {(biz.suburb || biz.state) && (
+                      <p className="text-xs text-[#94A3B8] mb-3 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {[biz.suburb, biz.state].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-[#64748B]">
+                        {biz.serviceCount} service{biz.serviceCount !== 1 ? 's' : ''}
+                        {biz.category ? ` · ${biz.category}` : ''}
+                      </span>
+                      <span className="text-xs font-semibold text-[#0D9488] group-hover:underline">
+                        View &rarr;
+                      </span>
                     </div>
-                    <div className="px-5 pb-5">
-                      <div className="py-2.5 rounded-xl text-sm font-bold text-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#0D9488]">
-                        View &amp; Book →
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
+
+          {showMore && (
+            <div className="mt-10 text-center">
+              <button
+                onClick={() => setSearch(' ')}
+                className="px-8 py-3 rounded-full border-2 border-[#0D9488] text-[#0D9488] font-bold text-sm hover:bg-[#0D9488] hover:text-white transition-all duration-200"
+              >
+                View all {listings.length} listings
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* TESTIMONIALS                                                        */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="bg-white py-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold tracking-[0.18em] uppercase text-[#0D9488] mb-2">
+              Real stories
+            </p>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A]">
+              Loved by models & businesses
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {TESTIMONIALS.map((t) => (
+              <div
+                key={t.author}
+                className="bg-[#F8FAFC] rounded-2xl p-7 border border-[#E2E8F0] flex flex-col gap-5"
+              >
+                <div className="flex gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-[#0F172A] text-sm leading-relaxed font-medium flex-1">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={t.avatar}
+                    alt={t.author}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-[#0F172A]">{t.author}</p>
+                    <p className="text-xs text-[#94A3B8]">{t.location}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* CTA BANNER                                                          */}
+      {/* ------------------------------------------------------------------ */}
+      <section className="bg-[#0F172A] py-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">
+            Ready to find your next treatment?
+          </h2>
+          <p className="text-lg text-[#94A3B8] mb-10">
+            Join thousands of Australians getting premium beauty for free or heavily discounted.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="#browse"
+              className="px-8 py-4 rounded-full font-bold text-base bg-[#0D9488] text-white hover:bg-teal-600 transition-all duration-200 shadow-lg shadow-teal-900/30"
+            >
+              Browse Treatments
+            </a>
+            <Link
+              href="/for-businesses"
+              className="px-8 py-4 rounded-full font-bold text-base border-2 border-white/30 text-white hover:border-white transition-all duration-200"
+            >
+              List Your Business
+            </Link>
+          </div>
         </div>
       </section>
     </>
   );
 }
 
-// ─── Data fetching ─────────────────────────────────────────────────────────────
-
-export const getServerSideProps: GetServerSideProps = async ({ query }) => {
-  const q        = (query.q        as string) || '';
-  const suburb   = (query.suburb   as string) || '';
-  const category = (query.category as string) || '';
-  const maxPrice = (query.maxPrice as string) || '';
-
+// ---------------------------------------------------------------------------
+// Data fetching
+// ---------------------------------------------------------------------------
+export const getServerSideProps: GetServerSideProps<Props> = async () => {
+  const prisma = new PrismaClient();
   try {
     const businesses = await prisma.business.findMany({
-      where: {
+      where: { services: { some: { isActive: true } } },
+      select: {
+        slug: true,
+        name: true,
+        suburb: true,
+        state: true,
         verified: true,
-        isAcceptingModels: true,
         services: {
-          some: {
-            isActive: true,
-            ...(category ? { category: { equals: category, mode: 'insensitive' } } : {}),
-            ...(q        ? { name:     { contains: q,        mode: 'insensitive' } } : {}),
-            ...(maxPrice ? { price:    { lte: Math.round(parseFloat(maxPrice) * 100) } } : {}),
-          },
-        },
-        ...(suburb ? {
-          OR: [
-            { suburb: { contains: suburb, mode: 'insensitive' } },
-            { city:   { contains: suburb, mode: 'insensitive' } },
-          ],
-        } : {}),
-      },
-      include: {
-        services: {
-          where:   { isActive: true },
-          orderBy: { price: 'asc' },
-          take:    3,
+          where: { isActive: true },
+          select: { price: true, category: true },
         },
       },
-      orderBy: [{ avgRating: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
-      take: 48,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
     });
 
-    return {
-      props: {
-        businesses: businesses.map((b) => ({
-          id: b.id, name: b.name, slug: b.slug,
-          suburb: b.suburb ?? null, city: b.city ?? null, state: b.state ?? null,
-          avgRating: b.avgRating ?? null,
-          services: b.services.map((s) => ({
-            id: s.id, name: s.name, price: s.price,
-            originalPrice: s.originalPrice ?? null,
-            durationMin: s.durationMin, category: s.category ?? null,
-          })),
-        })),
-        total: businesses.length,
-        filters: { q, suburb, category, maxPrice },
-      },
-    };
+    const listings: BusinessCard[] = businesses.map((b) => ({
+      slug: b.slug,
+      name: b.name,
+      suburb: b.suburb ?? null,
+      state: b.state ?? null,
+      verified: b.verified,
+      category: b.services[0]?.category ?? null,
+      minPrice: Math.min(...b.services.map((s) => s.price)),
+      serviceCount: b.services.length,
+    }));
+
+    return { props: { listings } };
   } catch (err) {
-    console.error('[getServerSideProps /]', err);
-    return { props: { businesses: [], total: 0, filters: { q, suburb, category, maxPrice } } };
+    console.error('Homepage SSP error:', err);
+    return { props: { listings: [] } };
+  } finally {
+    await prisma.$disconnect();
   }
 };
