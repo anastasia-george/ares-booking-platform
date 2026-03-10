@@ -11,74 +11,86 @@ const FULL_SCREEN_ROUTES = ['/onboard'];
 function NavBar() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isActive = (path: string) => router.pathname === path;
+  const isActive = (path: string) => router.pathname === path || (path === '/' && router.pathname === '/');
+  const linkStyle = (path: string) => isActive(path) ? { color: '#0D9488' } : { color: '#64748B' };
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
+    <nav className="bg-white sticky top-0 z-50" style={{ borderBottom: '1px solid #E2E8F0' }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0">
-          <Image src="/brand/lockup-light.svg" alt="Model Call" width={160} height={40} priority />
+          <Image src="/brand/lockup-light.svg" alt="Model Call" width={148} height={36} priority />
         </Link>
 
-        {/* Nav links */}
-        <div className="hidden sm:flex items-center gap-6 text-sm font-medium">
-          <Link href="/" className={isActive('/') ? 'text-teal-600' : 'text-slate-500 hover:text-slate-800'}
-            style={isActive('/') ? { color: '#0D9488' } : {}}>
-            Browse
-          </Link>
-          <Link href="/for-models"
-            className={isActive('/for-models') ? 'text-teal-600' : 'text-slate-500 hover:text-slate-800'}
-            style={isActive('/for-models') ? { color: '#0D9488' } : {}}>
-            For Models
+        {/* Center nav links */}
+        <div className="hidden md:flex items-center gap-7">
+          <Link href="/#browse"
+            className="text-sm font-semibold transition-colors hover:opacity-80"
+            style={{ color: '#64748B' }}>
+            Browse Treatments
           </Link>
           <Link href="/for-businesses"
-            className={isActive('/for-businesses') ? 'text-teal-600' : 'text-slate-500 hover:text-slate-800'}
-            style={isActive('/for-businesses') ? { color: '#0D9488' } : {}}>
+            className="text-sm font-semibold transition-colors hover:opacity-80"
+            style={linkStyle('/for-businesses')}>
             For Businesses
           </Link>
+          <Link href="/#how-it-works"
+            className="text-sm font-semibold transition-colors hover:opacity-80"
+            style={{ color: '#64748B' }}>
+            How it Works
+          </Link>
+          {/* Authenticated extras */}
           {(session?.user?.role === 'BUSINESS_OWNER' || session?.user?.role === 'ADMIN') && (
             <Link href="/dashboard"
-              className={isActive('/dashboard') ? 'text-teal-600' : 'text-slate-500 hover:text-slate-800'}
-              style={isActive('/dashboard') ? { color: '#0D9488' } : {}}>
+              className="text-sm font-semibold transition-colors hover:opacity-80"
+              style={linkStyle('/dashboard')}>
               Dashboard
             </Link>
           )}
           {session && (
             <Link href="/my-bookings"
-              className={isActive('/my-bookings') ? 'text-teal-600' : 'text-slate-500 hover:text-slate-800'}
-              style={isActive('/my-bookings') ? { color: '#0D9488' } : {}}>
+              className="text-sm font-semibold transition-colors hover:opacity-80"
+              style={linkStyle('/my-bookings')}>
               My Bookings
             </Link>
           )}
         </div>
 
-        {/* Auth + CTA */}
-        <div className="flex items-center gap-3">
-          {session?.user?.role !== 'BUSINESS_OWNER' && session?.user?.role !== 'ADMIN' && (
-            <Link href="/onboard"
-              className="hidden sm:inline-flex px-4 py-1.5 border rounded-lg text-sm font-medium transition"
-              style={{ borderColor: '#0D9488', color: '#0D9488' }}>
-              List a Service
-            </Link>
-          )}
+        {/* Right: auth buttons */}
+        <div className="flex items-center gap-2.5">
           {status !== 'loading' && (
             !session ? (
-              <button
-                onClick={() => signIn()}
-                className="px-4 py-1.5 text-white rounded-lg text-sm font-semibold transition"
-                style={{ backgroundColor: '#0D9488' }}
-              >
-                Sign In
-              </button>
+              <>
+                <button
+                  onClick={() => signIn()}
+                  className="hidden sm:inline-flex px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all hover:bg-gray-50"
+                  style={{ borderColor: '#0F172A', color: '#0F172A' }}>
+                  Log In
+                </button>
+                <button
+                  onClick={() => signIn()}
+                  className="px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+                  style={{ backgroundColor: '#0D9488' }}>
+                  Sign Up
+                </button>
+              </>
             ) : (
-              <button
-                onClick={() => signOut({ callbackUrl: '/' })}
-                className="text-sm font-medium"
-                style={{ color: '#64748B' }}
-              >
-                Sign Out
-              </button>
+              <div className="flex items-center gap-3">
+                {session?.user?.role !== 'BUSINESS_OWNER' && session?.user?.role !== 'ADMIN' && (
+                  <Link href="/onboard"
+                    className="hidden sm:inline-flex px-4 py-2 border-2 rounded-xl text-sm font-bold transition-all hover:bg-gray-50"
+                    style={{ borderColor: '#0D9488', color: '#0D9488' }}>
+                    List a Service
+                  </Link>
+                )}
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="text-sm font-medium transition hover:opacity-70"
+                  style={{ color: '#94A3B8' }}>
+                  Sign Out
+                </button>
+              </div>
             )
           )}
         </div>
@@ -88,47 +100,53 @@ function NavBar() {
 }
 
 function Footer() {
+  const linkCls = 'text-sm transition-colors hover:opacity-80';
+  const linkStyle = { color: '#64748B' };
+
   return (
-    <footer className="border-t border-gray-200 mt-20" style={{ backgroundColor: '#0F172A' }}>
-      <div className="max-w-6xl mx-auto px-4 py-12">
+    <footer style={{ backgroundColor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
         <div className="flex flex-col md:flex-row justify-between gap-10">
+
           {/* Brand */}
           <div className="max-w-xs">
-            <Image src="/brand/lockup-dark.svg" alt="Model Call" width={140} height={36} />
-            <p className="mt-3 text-sm" style={{ color: '#64748B' }}>
+            <Image src="/brand/lockup-light.svg" alt="Model Call" width={140} height={36} />
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: '#94A3B8' }}>
               Australia&rsquo;s marketplace for free and discounted beauty model calls.
             </p>
           </div>
 
-          {/* Links */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 text-sm">
+          {/* Link columns */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
             <div>
-              <p className="font-semibold text-white mb-3">Platform</p>
-              <ul className="space-y-2">
-                <li><Link href="/" className="hover:text-white" style={{ color: '#64748B' }}>Browse Treatments</Link></li>
-                <li><Link href="/for-models" className="hover:text-white" style={{ color: '#64748B' }}>For Models</Link></li>
-                <li><Link href="/for-businesses" className="hover:text-white" style={{ color: '#64748B' }}>For Businesses</Link></li>
-                <li><Link href="/onboard" className="hover:text-white" style={{ color: '#64748B' }}>List a Service</Link></li>
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Platform</p>
+              <ul className="space-y-3">
+                <li><Link href="/#browse" className={linkCls} style={linkStyle}>Browse Treatments</Link></li>
+                <li><Link href="/for-models" className={linkCls} style={linkStyle}>For Models</Link></li>
+                <li><Link href="/for-businesses" className={linkCls} style={linkStyle}>For Businesses</Link></li>
+                <li><Link href="/onboard" className={linkCls} style={linkStyle}>List a Service</Link></li>
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-white mb-3">Company</p>
-              <ul className="space-y-2">
-                <li><Link href="/about" className="hover:text-white" style={{ color: '#64748B' }}>About Us</Link></li>
-                <li><Link href="/faq" className="hover:text-white" style={{ color: '#64748B' }}>FAQ</Link></li>
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Company</p>
+              <ul className="space-y-3">
+                <li><Link href="/about" className={linkCls} style={linkStyle}>About Us</Link></li>
+                <li><Link href="/faq" className={linkCls} style={linkStyle}>FAQ</Link></li>
+                <li><Link href="mailto:hello@modelcall.app" className={linkCls} style={linkStyle}>Contact</Link></li>
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-white mb-3">Legal</p>
-              <ul className="space-y-2">
-                <li><Link href="/legal/privacy" className="hover:text-white" style={{ color: '#64748B' }}>Privacy Policy</Link></li>
-                <li><Link href="/legal/terms" className="hover:text-white" style={{ color: '#64748B' }}>Terms of Service</Link></li>
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0F172A' }}>Legal</p>
+              <ul className="space-y-3">
+                <li><Link href="/legal/privacy" className={linkCls} style={linkStyle}>Privacy Policy</Link></li>
+                <li><Link href="/legal/terms" className={linkCls} style={linkStyle}>Terms of Service</Link></li>
               </ul>
             </div>
           </div>
         </div>
-        <div className="mt-10 pt-6 border-t border-slate-800 text-xs text-center" style={{ color: '#64748B' }}>
-          &copy; {new Date().getFullYear()} Model Call Pty Ltd. All rights reserved. ABN pending.
+
+        <div className="mt-10 pt-6 text-xs text-center" style={{ borderTop: '1px solid #E2E8F0', color: '#94A3B8' }}>
+          &copy; {new Date().getFullYear()} Model Call. All rights reserved.
         </div>
       </div>
     </footer>
