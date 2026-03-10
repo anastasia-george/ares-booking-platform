@@ -211,7 +211,7 @@ export default function OnboardPage() {
                 <div className="flex flex-wrap gap-3">
                   {CATEGORIES.map(cat => (
                     <button key={cat}
-                      onClick={() => { set('category', cat); setTimeout(handleNext, 200); }}
+                      onClick={() => { setForm(p => ({ ...p, category: cat })); setStep(s => s + 1); }}
                       className={`px-5 py-2.5 rounded-full border-2 font-medium transition text-sm ${
                         form.category === cat
                           ? 'border-pink-500 bg-pink-500 text-white'
@@ -260,10 +260,11 @@ export default function OnboardPage() {
               <div>
                 <p className="text-pink-500 font-medium text-sm mb-3">{step} / {TOTAL_STEPS}</p>
                 <h2 className="text-4xl font-bold text-gray-900 leading-tight mb-2">How long does it take?</h2>
-                <p className="text-gray-400 mb-10">Models need to know how to plan their day.</p>
+                <p className="text-gray-400 mb-10">Tap to select, then hit &ldquo;List my business&rdquo;.</p>
                 <div className="flex flex-wrap gap-3">
                   {DURATIONS.map(d => (
-                    <button key={d} onClick={() => set('durationMin', d)}
+                    <button key={d}
+                      onClick={() => setForm(p => ({ ...p, durationMin: d }))}
                       className={`px-5 py-3 rounded-xl border-2 font-medium transition text-sm ${
                         form.durationMin === d
                           ? 'border-pink-500 bg-pink-500 text-white'
