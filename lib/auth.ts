@@ -28,7 +28,11 @@ const providers: NextAuthOptions['providers'] = [
           </div>
         `,
       });
-      if (error) throw new Error(`Resend error: ${error.message}`);
+      if (error) {
+        console.error('[Resend] send error:', JSON.stringify(error));
+        throw new Error(`Resend error: ${error.message}`);
+      }
+      console.log('[Resend] email sent to', email);
     },
   }),
 ];
