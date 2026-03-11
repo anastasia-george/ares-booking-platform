@@ -7,13 +7,9 @@ export default function Document() {
       <Head>
         <meta charSet="utf-8" />
 
-        {/* Viewport — required for mobile responsiveness */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-
         {/* Brand / theme */}
         <meta name="theme-color" content="#0F172A" />
         <meta name="application-name" content="ModelCall" />
-        <meta name="description" content="Australia's beauty model call platform. Book free or discounted treatments at top clinics." />
 
         {/* Favicon — SVG for modern browsers, ICO fallback for legacy */}
         <link rel="icon" type="image/svg+xml" href="/brand/app-icon.svg" />
@@ -29,19 +25,17 @@ export default function Document() {
         {/* PWA manifest */}
         <link rel="manifest" href="/manifest.json" />
 
-        {/* Open Graph */}
+        {/* Open Graph defaults (overridden per-page) */}
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="ModelCall" />
-        <meta property="og:title" content="ModelCall — Free & discounted beauty treatments" />
-        <meta property="og:description" content="Australia's beauty model call platform. Book free or discounted treatments at top clinics." />
-        <meta property="og:image" content="https://modelcall.app/brand/icon-512.png" />
-        <meta property="og:url" content="https://modelcall.app" />
+        <meta property="og:site_name" content="Model Call" />
+        <meta property="og:image" content="https://modelcall.app/brand/og-default.svg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:locale" content="en_AU" />
 
-        {/* Twitter / X card */}
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="ModelCall" />
-        <meta name="twitter:description" content="Australia's beauty model call platform." />
-        <meta name="twitter:image" content="https://modelcall.app/brand/icon-512.png" />
+        {/* Twitter / X card defaults (overridden per-page) */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://modelcall.app/brand/og-default.svg" />
 
         {/* Font preconnect */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

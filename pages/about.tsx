@@ -6,8 +6,14 @@ export default function About() {
   return (
     <>
       <Head>
-        <title>About Us — Model Call</title>
-        <meta name="description" content="The story behind Model Call — Australia's marketplace for free and discounted beauty treatments." />
+        <title>About Us — Model Call | Australia&apos;s Beauty Model Call Platform</title>
+        <meta name="description" content="Learn about Model Call — Australia's marketplace connecting beauty students and clinics with models for free and discounted treatments. Our mission, values, and story." />
+        <link rel="canonical" href="https://modelcall.app/about" />
+        <meta property="og:title" content="About Model Call — Australia's Beauty Model Call Platform" />
+        <meta property="og:description" content="Learn about Model Call — connecting beauty students and clinics with models for free and discounted treatments." />
+        <meta property="og:url" content="https://modelcall.app/about" />
+        <meta name="twitter:title" content="About Model Call" />
+        <meta name="twitter:description" content="The story behind Australia's beauty model call platform." />
       </Head>
 
       {/* Hero */}

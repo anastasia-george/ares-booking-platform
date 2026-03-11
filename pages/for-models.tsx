@@ -58,8 +58,15 @@ export default function ForModels() {
   return (
     <>
       <Head>
-        <title>For Models — Model Call</title>
-        <meta name="description" content="Book free and discounted beauty treatments as a model. Find lashes, injectables, nails and more across Australia." />
+        <title>For Models — Free Beauty Treatments Australia | Model Call</title>
+        <meta name="description" content="Book free and discounted beauty treatments across Australia. Find model calls for lashes, injectables, facials, nails, hair and more — no experience needed, zero booking fees." />
+        <link rel="canonical" href="https://modelcall.app/for-models" />
+        <meta property="og:title" content="For Models — Free Beauty Treatments Australia" />
+        <meta property="og:description" content="Book free and discounted beauty treatments. Lashes, injectables, facials, nails, hair — no experience needed." />
+        <meta property="og:url" content="https://modelcall.app/for-models" />
+        <meta name="twitter:title" content="For Models — Free Beauty Treatments" />
+        <meta name="twitter:description" content="Book free and discounted beauty treatments across Australia — no experience needed." />
+        <meta name="keywords" content="free beauty treatments, beauty model, model call, free lashes, free facials, free injectables, discounted beauty, beauty model Australia" />
       </Head>
 
       {/* Hero */}

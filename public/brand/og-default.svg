@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0D9488"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Accent bar -->
+  <rect y="0" width="1200" height="6" fill="url(#accent)"/>
+  <!-- Logo mark: M silhouette + teal dot -->
+  <circle cx="105" cy="246" r="18" fill="#0D9488"/>
+  <path d="M60 330 L105 258 L140 300 L175 258 L220 330" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Title -->
+  <text x="260" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="800" fill="#FFFFFF" letter-spacing="-1">Model Call</text>
+  <!-- Tagline -->
+  <text x="260" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="500" fill="#94A3B8">Free &amp; discounted beauty treatments</text>
+  <!-- Subtitle -->
+  <text x="260" y="385" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="400" fill="#64748B">Australia's beauty model call platform</text>
+  <!-- URL pill -->
+  <rect x="260" y="420" width="260" height="44" rx="22" fill="#0D9488" opacity="0.15"/>
+  <text x="290" y="449" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="600" fill="#0D9488">modelcall.app</text>
+  <!-- Decorative dots -->
+  <circle cx="1050" cy="150" r="80" fill="#0D9488" opacity="0.08"/>
+  <circle cx="1100" cy="450" r="120" fill="#0D9488" opacity="0.05"/>
+  <circle cx="950" cy="530" r="60" fill="#06B6D4" opacity="0.06"/>
+</svg>

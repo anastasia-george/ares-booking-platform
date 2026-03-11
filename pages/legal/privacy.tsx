@@ -9,7 +9,10 @@ export default function PrivacyPolicy() {
     <>
       <Head>
         <title>Privacy Policy — Model Call</title>
-        <meta name="description" content="Model Call privacy policy — how we collect, use, and protect your personal information." />
+        <meta name="description" content="Model Call privacy policy — how we collect, use, and protect your personal information in accordance with Australian Privacy Act 1988." />
+        <link rel="canonical" href="https://modelcall.app/legal/privacy" />
+        <meta property="og:title" content="Privacy Policy — Model Call" />
+        <meta property="og:url" content="https://modelcall.app/legal/privacy" />
       </Head>
 
       <section style={{ backgroundColor: '#0F172A' }} className="py-16 text-center px-4">

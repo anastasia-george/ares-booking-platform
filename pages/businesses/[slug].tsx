@@ -152,8 +152,75 @@ export default function BusinessProfilePage({ business }: Props) {
   return (
     <>
       <Head>
-        <title>{business.name} — Model Call</title>
-        <meta name="description" content={business.bio ?? `Book a free or discounted ${firstCat ?? 'beauty'} treatment with ${business.name}`} />
+        <title>{business.name} — Free & Discounted {firstCat ?? 'Beauty'} Treatments | Model Call</title>
+        <meta name="description" content={business.bio ?? `Book a free or discounted ${firstCat ?? 'beauty'} treatment with ${business.name} in ${[business.suburb, business.state].filter(Boolean).join(', ') || 'Australia'}. Verified clinic on Model Call.`} />
+        <link rel="canonical" href={`https://modelcall.app/businesses/${business.slug}`} />
+        <meta property="og:title" content={`${business.name} — Model Call`} />
+        <meta property="og:description" content={`Book ${firstCat ?? 'beauty'} treatments with ${business.name}. ${lowestSvc?.price === 0 ? 'FREE sessions available.' : `From $${lowestSvc ? (lowestSvc.price / 100).toFixed(0) : '0'}.`}`} />
+        <meta property="og:url" content={`https://modelcall.app/businesses/${business.slug}`} />
+        <meta name="twitter:title" content={`${business.name} — Model Call`} />
+        <meta name="twitter:description" content={`${firstCat ?? 'Beauty'} model call in ${[business.suburb, business.state].filter(Boolean).join(', ') || 'Australia'}.`} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'HealthAndBeautyBusiness',
+              name: business.name,
+              url: `https://modelcall.app/businesses/${business.slug}`,
+              image: photos[0],
+              ...(business.suburb || business.state ? {
+                address: {
+                  '@type': 'PostalAddress',
+                  addressLocality: business.suburb ?? undefined,
+                  addressRegion: business.state ?? undefined,
+                  addressCountry: 'AU',
+                },
+              } : {}),
+              ...(business.bio ? { description: business.bio } : {}),
+              ...(business.avgRating && business.reviews.length > 0 ? {
+                aggregateRating: {
+                  '@type': 'AggregateRating',
+                  ratingValue: business.avgRating.toFixed(1),
+                  reviewCount: business.reviews.length,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              } : {}),
+              ...(business.reviews.length > 0 ? {
+                review: business.reviews.slice(0, 5).map((rev) => ({
+                  '@type': 'Review',
+                  reviewRating: {
+                    '@type': 'Rating',
+                    ratingValue: rev.rating,
+                    bestRating: 5,
+                  },
+                  author: {
+                    '@type': 'Person',
+                    name: rev.user.name ?? 'Anonymous',
+                  },
+                  datePublished: rev.createdAt.split('T')[0],
+                  ...(rev.comment ? { reviewBody: rev.comment } : {}),
+                })),
+              } : {}),
+              hasOfferCatalog: {
+                '@type': 'OfferCatalog',
+                name: 'Model Call Treatments',
+                itemListElement: business.services.map((svc) => ({
+                  '@type': 'Offer',
+                  itemOffered: {
+                    '@type': 'Service',
+                    name: svc.name,
+                    ...(svc.description ? { description: svc.description } : {}),
+                  },
+                  price: (svc.price / 100).toFixed(2),
+                  priceCurrency: 'AUD',
+                  availability: 'https://schema.org/InStock',
+                })),
+              },
+            }),
+          }}
+        />
       </Head>
 
       <div className="bg-[#F8FAFC] min-h-screen">

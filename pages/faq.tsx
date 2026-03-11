@@ -59,8 +59,33 @@ export default function FAQ() {
   return (
     <>
       <Head>
-        <title>FAQ — Model Call</title>
-        <meta name="description" content="Frequently asked questions about Model Call — for models, businesses, payments, and cancellations." />
+        <title>FAQ — Model Call | Free Beauty Treatments Australia</title>
+        <meta name="description" content="Frequently asked questions about Model Call — how to book free beauty treatments, business listings, payments, cancellations, and safety. Everything you need to know." />
+        <link rel="canonical" href="https://modelcall.app/faq" />
+        <meta property="og:title" content="FAQ — Model Call" />
+        <meta property="og:description" content="Everything you need to know about booking free beauty treatments and listing your business on Model Call." />
+        <meta property="og:url" content="https://modelcall.app/faq" />
+        <meta name="twitter:title" content="FAQ — Model Call" />
+        <meta name="twitter:description" content="Frequently asked questions about Model Call — for models, businesses, and payments." />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: SECTIONS.flatMap((section) =>
+                section.items.map((item) => ({
+                  '@type': 'Question',
+                  name: item.q,
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: item.a,
+                  },
+                }))
+              ),
+            }),
+          }}
+        />
       </Head>
 
       {/* Hero */}

@@ -62,8 +62,15 @@ export default function ForBusinesses() {
   return (
     <>
       <Head>
-        <title>For Businesses — Model Call</title>
-        <meta name="description" content="Fill empty chairs, run student training days, and build your reputation with Model Call — Australia's beauty marketplace." />
+        <title>For Beauty Businesses — List Model Calls Free | Model Call</title>
+        <meta name="description" content="Fill empty chairs, run student training days, and build your clinic's reputation. List model calls for free on Australia's leading beauty model booking platform." />
+        <link rel="canonical" href="https://modelcall.app/for-businesses" />
+        <meta property="og:title" content="For Beauty Businesses — List Model Calls Free" />
+        <meta property="og:description" content="Fill empty chairs and build your reputation. List model calls for free on Australia's beauty booking platform." />
+        <meta property="og:url" content="https://modelcall.app/for-businesses" />
+        <meta name="twitter:title" content="For Businesses — Model Call" />
+        <meta name="twitter:description" content="List model calls for free and fill your chairs with motivated models." />
+        <meta name="keywords" content="beauty business model call, list beauty service, beauty student training models, beauty academy model call, fill empty chairs clinic" />
       </Head>
 
       {/* Hero */}

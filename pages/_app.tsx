@@ -51,6 +51,7 @@ function NavBar() {
           {navLink('/#browse',      'Browse')}
           {navLink('/for-businesses','For Businesses')}
           {navLink('/#how-it-works', 'How it Works')}
+          {navLink('/blog',          'Blog')}
           {(session?.user?.role === 'BUSINESS_OWNER' || session?.user?.role === 'ADMIN') &&
             navLink('/dashboard', 'Dashboard')}
           {session && navLink('/my-bookings', 'My Bookings')}
@@ -118,6 +119,7 @@ function Footer() {
                 <li><Link href="/for-models"     className={col}>For Models</Link></li>
                 <li><Link href="/for-businesses" className={col}>For Businesses</Link></li>
                 <li><Link href="/onboard"        className={col}>List a Service</Link></li>
+                <li><Link href="/blog"           className={col}>Blog</Link></li>
               </ul>
             </div>
             <div>

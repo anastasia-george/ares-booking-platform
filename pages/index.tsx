@@ -1,5 +1,6 @@
 // pages/index.tsx
 import { GetServerSideProps } from 'next';
+import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
@@ -109,7 +110,36 @@ export default function Home({ listings }: Props) {
   const MOCK_ORIGINALS= [180, 150, 220, 120, 195, 160, 240, 130, 175, 200];
   const TIME_AGO      = ['Added 2 hours ago', 'Added yesterday', 'Added 3 days ago', 'Added this week'];
 
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Model Call',
+    url: 'https://modelcall.app',
+    description: 'Australia\'s marketplace for free and discounted beauty model calls. Book lashes, facials, injectables, hair and more at top clinics.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://modelcall.app/?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
+    <>
+    <Head>
+      <title>Model Call — Free &amp; Discounted Beauty Treatments in Australia</title>
+      <meta name="description" content="Book free and discounted beauty treatments at verified clinics across Australia. Find model calls for lashes, facials, injectables, hair, nails and more — zero booking fees." />
+      <link rel="canonical" href="https://modelcall.app" />
+      <meta property="og:title" content="Model Call — Free & Discounted Beauty Treatments in Australia" />
+      <meta property="og:description" content="Book free and discounted beauty treatments at verified clinics across Australia. Lashes, facials, injectables, hair, nails and more." />
+      <meta property="og:url" content="https://modelcall.app" />
+      <meta name="twitter:title" content="Model Call — Free & Discounted Beauty Treatments" />
+      <meta name="twitter:description" content="Australia’s beauty model call platform. Book free or discounted treatments at top clinics." />
+      <meta name="keywords" content="model call, free beauty treatments Australia, discounted beauty treatments, beauty model call, free lashes Sydney, free facials, free injectables, beauty model booking" />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+    </Head>
     <div className="bg-[#F8FAFC]">
 
       {/* ================================================================
@@ -423,6 +453,7 @@ export default function Home({ listings }: Props) {
         </div>
       </section>
     </div>
+    </>
   );
 }
 
