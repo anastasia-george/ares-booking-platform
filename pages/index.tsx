@@ -2,14 +2,16 @@
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { PrismaClient } from '@prisma/client';
 import {
   Search, MapPin, Heart, Star, ChevronRight,
   Sparkles, Scissors, Zap, Droplets, Hand,
   Wind, Flower2, Brush, Waves, SlidersHorizontal,
+  Clock, CalendarCheck,
 } from 'lucide-react';
+import prismaClient from '../lib/prisma';
+import { getNextAvailableForBusiness } from '../lib/availability';
 
 // ---------------------------------------------------------------------------
 // Image maps
@@ -73,6 +75,49 @@ interface BusinessCard {
   category: string | null;
   minPrice: number;
   serviceCount: number;
+  nextAvailable: string | null;
+  slotsToday: number;
+}
+
+type SortOption = 'soonest' | 'rated' | 'value';
+type TimeFilter = '' | 'today' | 'tomorrow' | 'week' | 'weekend';
+
+const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
+  { label: 'All', value: '' },
+  { label: 'Today', value: 'today' },
+  { label: 'Tomorrow', value: 'tomorrow' },
+  { label: 'This Week', value: 'week' },
+  { label: 'Weekend', value: 'weekend' },
+];
+
+const SORT_OPTIONS: { label: string; value: SortOption }[] = [
+  { label: 'Soonest Available', value: 'soonest' },
+  { label: 'Highest Rated', value: 'rated' },
+  { label: 'Best Value', value: 'value' },
+];
+
+function availabilityBadge(card: BusinessCard): { text: string; color: string } | null {
+  if (!card.nextAvailable) return null;
+  const nextDate = new Date(card.nextAvailable);
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const tomorrowDate = new Date(today);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+  const tomorrowStr = tomorrowDate.toISOString().slice(0, 10);
+  const nextStr = nextDate.toISOString().slice(0, 10);
+
+  if (nextStr === todayStr) {
+    return { text: card.slotsToday > 1 ? `${card.slotsToday} spots today` : 'Available today', color: 'bg-emerald-500' };
+  }
+  if (nextStr === tomorrowStr) {
+    return { text: 'Tomorrow', color: 'bg-teal-500' };
+  }
+  // Within this week
+  const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
+  if (diffDays <= 7) {
+    return { text: nextDate.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }), color: 'bg-sky-500' };
+  }
+  return null;
 }
 
 interface Props {
@@ -88,13 +133,54 @@ export default function Home({ listings }: Props) {
   const [heroLoc, setHeroLoc]             = useState('');
   const [heroTreatment, setHeroTreatment] = useState('');
   const [saved, setSaved]                 = useState<Set<string>>(new Set());
+  const [timeFilter, setTimeFilter]       = useState<TimeFilter>('');
+  const [sortBy, setSortBy]               = useState<SortOption>('soonest');
 
-  const filtered = listings.filter((b) => {
-    if (activeCat && b.category !== activeCat) return false;
-    if (heroLoc && !`${b.suburb ?? ''} ${b.state ?? ''}`.toLowerCase().includes(heroLoc.toLowerCase())) return false;
-    if (heroTreatment && !b.name.toLowerCase().includes(heroTreatment.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    let result = listings.filter((b) => {
+      if (activeCat && b.category !== activeCat) return false;
+      if (heroLoc && !`${b.suburb ?? ''} ${b.state ?? ''}`.toLowerCase().includes(heroLoc.toLowerCase())) return false;
+      if (heroTreatment && !b.name.toLowerCase().includes(heroTreatment.toLowerCase())) return false;
+
+      // Time filter
+      if (timeFilter && b.nextAvailable) {
+        const nextDate = new Date(b.nextAvailable);
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        const nextStr = nextDate.toISOString().slice(0, 10);
+        const tomorrow = new Date(today);
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+
+        if (timeFilter === 'today' && nextStr !== todayStr) return false;
+        if (timeFilter === 'tomorrow' && nextStr !== tomorrow.toISOString().slice(0, 10)) return false;
+        if (timeFilter === 'week') {
+          const diff = Math.ceil((nextDate.getTime() - today.getTime()) / 86400000);
+          if (diff > 7) return false;
+        }
+        if (timeFilter === 'weekend') {
+          const dow = nextDate.getUTCDay();
+          if (dow !== 0 && dow !== 6) return false;
+        }
+      } else if (timeFilter) {
+        return false; // No availability at all
+      }
+
+      return true;
+    });
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'soonest') {
+        if (!a.nextAvailable) return 1;
+        if (!b.nextAvailable) return -1;
+        return a.nextAvailable.localeCompare(b.nextAvailable);
+      }
+      if (sortBy === 'value') return a.minPrice - b.minPrice;
+      return 0; // 'rated' — keep SSR order (mock ratings)
+    });
+
+    return result;
+  }, [listings, activeCat, heroLoc, heroTreatment, timeFilter, sortBy]);
 
   function toggleSave(slug: string) {
     setSaved((prev) => {
@@ -260,9 +346,76 @@ export default function Home({ listings }: Props) {
       </div>
 
       {/* ================================================================
+          AVAILABLE TODAY STRIP
+      ================================================================ */}
+      {(() => {
+        const availToday = listings.filter((b) => b.slotsToday > 0).slice(0, 6);
+        if (availToday.length === 0) return null;
+        return (
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <h2 className="text-[15px] font-black text-[#0F172A]">Available today</h2>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+              {availToday.map((biz) => (
+                <Link
+                  key={biz.slug}
+                  href={`/businesses/${biz.slug}`}
+                  className="shrink-0 flex items-center gap-3 bg-white border border-[#E2E8F0] rounded-2xl px-4 py-3 hover:border-[#0D9488] transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-[#E2E8F0] shrink-0">
+                    <img src={catImage(biz.category, 0)} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-[#0F172A] truncate">{biz.name}</p>
+                    <p className="text-[11px] text-emerald-600 font-medium">
+                      {biz.slotsToday} spot{biz.slotsToday !== 1 ? 's' : ''} left today
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ================================================================
           LISTING GRID
       ================================================================ */}
       <section id="browse" className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+
+        {/* Quick filter pills + sort */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {TIME_FILTERS.map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => setTimeFilter(value)}
+                className={`
+                  shrink-0 px-4 py-2 rounded-full text-[13px] font-semibold border transition-all duration-150
+                  ${timeFilter === value
+                    ? 'bg-[#0F172A] text-white border-[#0F172A]'
+                    : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#94A3B8]'
+                  }
+                `}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="ml-auto">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="text-[13px] font-semibold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30"
+            >
+              {SORT_OPTIONS.map(({ label, value }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         {/* Header row */}
         <div className="flex items-center justify-between mb-8">
@@ -271,10 +424,6 @@ export default function Home({ listings }: Props) {
               ? <>{filtered.length} model call{filtered.length !== 1 ? 's' : ''} available</>
               : 'No listings match'}
           </p>
-          <button className="flex items-center gap-2 text-sm font-semibold text-[#0F172A] border border-[#E2E8F0] rounded-full px-4 py-2.5 hover:border-[#0F172A] transition-colors duration-150">
-            <SlidersHorizontal className="w-3.5 h-3.5" strokeWidth={2} />
-            Filters
-          </button>
         </div>
 
         {filtered.length === 0 ? (
@@ -338,7 +487,22 @@ export default function Home({ listings }: Props) {
                             {[biz.suburb, biz.state].filter(Boolean).join(', ')}
                           </p>
                         )}
-                        <p className="text-[13px] text-[#94A3B8] mt-[1px]">{timeAgo}</p>
+                        {/* Availability badge */}
+                        {(() => {
+                          const badge = availabilityBadge(biz);
+                          if (!badge) return (
+                            <p className="text-[12px] text-[#CBD5E1] mt-[2px] flex items-center gap-1">
+                              <Clock className="w-3 h-3" strokeWidth={2} />
+                              No upcoming availability
+                            </p>
+                          );
+                          return (
+                            <p className="text-[12px] text-emerald-600 font-medium mt-[2px] flex items-center gap-1">
+                              <CalendarCheck className="w-3 h-3" strokeWidth={2} />
+                              {badge.text}
+                            </p>
+                          );
+                        })()}
                       </div>
                       {/* Right: star rating */}
                       <div className="flex items-center gap-1 shrink-0 mt-[2px]">
@@ -461,34 +625,45 @@ export default function Home({ listings }: Props) {
 // Data fetching
 // ---------------------------------------------------------------------------
 export const getServerSideProps: GetServerSideProps<Props> = async () => {
-  const prisma = new PrismaClient();
   try {
-    const businesses = await prisma.business.findMany({
+    const businesses = await prismaClient.business.findMany({
       where: { services: { some: { isActive: true } } },
       select: {
-        slug: true, name: true, suburb: true, state: true, verified: true,
+        id: true, slug: true, name: true, suburb: true, state: true, verified: true,
         services: { where: { isActive: true }, select: { price: true, category: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 60,
     });
 
-    const listings: BusinessCard[] = businesses.map((b) => ({
-      slug:         b.slug,
-      name:         b.name,
-      suburb:       b.suburb ?? null,
-      state:        b.state  ?? null,
-      verified:     b.verified,
-      category:     b.services[0]?.category ?? null,
-      minPrice:     b.services.length > 0 ? Math.min(...b.services.map((s) => s.price)) : 0,
-      serviceCount: b.services.length,
+    // Compute availability in parallel
+    const availResults = await Promise.all(
+      businesses.map((b) => getNextAvailableForBusiness(b.id))
+    );
+
+    const listings: BusinessCard[] = businesses.map((b, i) => ({
+      slug:          b.slug,
+      name:          b.name,
+      suburb:        b.suburb ?? null,
+      state:         b.state  ?? null,
+      verified:      b.verified,
+      category:      b.services[0]?.category ?? null,
+      minPrice:      b.services.length > 0 ? Math.min(...b.services.map((s) => s.price)) : 0,
+      serviceCount:  b.services.length,
+      nextAvailable: availResults[i].nextAvailable,
+      slotsToday:    availResults[i].slotsToday,
     }));
+
+    // Default sort: soonest available first
+    listings.sort((a, b) => {
+      if (!a.nextAvailable) return 1;
+      if (!b.nextAvailable) return -1;
+      return a.nextAvailable.localeCompare(b.nextAvailable);
+    });
 
     return { props: { listings } };
   } catch (err) {
     console.error('Homepage SSP error:', err);
     return { props: { listings: [] } };
-  } finally {
-    await prisma.$disconnect();
   }
 };

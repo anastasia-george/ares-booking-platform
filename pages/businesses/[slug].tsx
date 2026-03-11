@@ -4,7 +4,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
-import { PrismaClient } from '@prisma/client';
+import prismaClient from '../../lib/prisma';
+import { getNextAvailableForBusiness } from '../../lib/availability';
 import dynamic from 'next/dynamic';
 import {
   ArrowLeft, MapPin, Star, CheckCircle2, Share2,
@@ -96,7 +97,11 @@ interface BusinessData {
   reviews: ReviewInfo[];
 }
 
-interface Props { business: BusinessData | null }
+interface Props {
+  business: BusinessData | null;
+  nextAvailable: string | null;
+  slotsToday: number;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -118,7 +123,7 @@ function StarRow({ rating }: { rating: number }) {
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
-export default function BusinessProfilePage({ business }: Props) {
+export default function BusinessProfilePage({ business, nextAvailable, slotsToday }: Props) {
   const { data: session }  = useSession();
   const [selectedSvc, setSelectedSvc] = useState<ServiceInfo | null>(
     business?.services[0] ?? null
@@ -570,22 +575,31 @@ export default function BusinessProfilePage({ business }: Props) {
                     </div>
                   )}
 
-                  {/* Date / time placeholder */}
-                  <div className="px-6 py-4 space-y-2.5 border-b border-[#E2E8F0]">
-                    <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 flex items-center justify-between cursor-pointer hover:border-[#0D9488] transition-colors group">
-                      <div>
-                        <p className="text-[10px] font-black text-[#0F172A] tracking-widest uppercase mb-0.5">Date</p>
-                        <p className="text-[13px] font-medium text-[#CBD5E1] group-hover:text-[#64748B] transition-colors">Select a date</p>
+                  {/* Next available info */}
+                  <div className="px-6 py-4 border-b border-[#E2E8F0]">
+                    {nextAvailable ? (
+                      <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 px-4 py-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <p className="text-[10px] font-black text-emerald-700 tracking-widest uppercase">Next Available</p>
+                        </div>
+                        <p className="text-[14px] font-bold text-[#0F172A]">
+                          {new Date(nextAvailable).toLocaleDateString('en-AU', {
+                            weekday: 'long', day: 'numeric', month: 'short',
+                          })}
+                        </p>
+                        {slotsToday > 0 && (
+                          <p className="text-[12px] text-emerald-600 font-medium mt-0.5">
+                            {slotsToday} spot{slotsToday !== 1 ? 's' : ''} available today
+                          </p>
+                        )}
                       </div>
-                      <Calendar className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#0D9488] transition-colors" strokeWidth={2} />
-                    </div>
-                    <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 flex items-center justify-between cursor-pointer hover:border-[#0D9488] transition-colors group">
-                      <div>
-                        <p className="text-[10px] font-black text-[#0F172A] tracking-widest uppercase mb-0.5">Time</p>
-                        <p className="text-[13px] font-medium text-[#CBD5E1] group-hover:text-[#64748B] transition-colors">Select a time</p>
+                    ) : (
+                      <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 text-center">
+                        <Clock className="w-5 h-5 text-[#CBD5E1] mx-auto mb-1" strokeWidth={2} />
+                        <p className="text-[13px] text-[#94A3B8]">No upcoming availability</p>
                       </div>
-                      <Clock className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#0D9488] transition-colors" strokeWidth={2} />
-                    </div>
+                    )}
                   </div>
 
                   {/* BookingCalendar (expanded when signed in & a service is selected) */}
@@ -660,10 +674,9 @@ export default function BusinessProfilePage({ business }: Props) {
 // Data fetching
 // ---------------------------------------------------------------------------
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  const slug  = params?.slug as string;
-  const prisma = new PrismaClient();
+  const slug = params?.slug as string;
   try {
-    const business = await prisma.business.findUnique({
+    const business = await prismaClient.business.findUnique({
       where:   { slug },
       include: {
         services: { where: { isActive: true }, orderBy: { price: 'asc' } },
@@ -676,7 +689,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       },
     });
 
-    if (!business) return { props: { business: null } };
+    if (!business) return { props: { business: null, nextAvailable: null, slotsToday: 0 } };
 
     const reviews = business.bookings
       .filter((b) => b.review)
@@ -692,8 +705,13 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : null;
 
+    // Compute next availability
+    const availData = await getNextAvailableForBusiness(business.id);
+
     return {
       props: {
+        nextAvailable: availData.nextAvailable,
+        slotsToday: availData.slotsToday,
         business: {
           id:              business.id,
           name:            business.name,
@@ -720,8 +738,6 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     };
   } catch (err) {
     console.error('[slug] SSP error:', err);
-    return { props: { business: null } };
-  } finally {
-    await prisma.$disconnect();
+    return { props: { business: null, nextAvailable: null, slotsToday: 0 } };
   }
 };
