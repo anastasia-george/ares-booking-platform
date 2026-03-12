@@ -2,10 +2,9 @@
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import prismaClient from '../../lib/prisma';
-import { getNextAvailableForBusiness } from '../../lib/availability';
 import dynamic from 'next/dynamic';
 import {
   ArrowLeft, MapPin, Star, CheckCircle2, Share2,
@@ -99,8 +98,6 @@ interface BusinessData {
 
 interface Props {
   business: BusinessData | null;
-  nextAvailable: string | null;
-  slotsToday: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,13 +120,35 @@ function StarRow({ rating }: { rating: number }) {
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
-export default function BusinessProfilePage({ business, nextAvailable, slotsToday }: Props) {
+export default function BusinessProfilePage({ business }: Props) {
   const { data: session }  = useSession();
   const [selectedSvc, setSelectedSvc] = useState<ServiceInfo | null>(
     business?.services[0] ?? null
   );
   const [saved, setSaved]           = useState(false);
   const [showBooking, setShowBooking] = useState(false);
+  const [nextAvailable, setNextAvailable] = useState<string | null>(null);
+  const [slotsToday, setSlotsToday] = useState(0);
+  const [availLoading, setAvailLoading] = useState(true);
+
+  // Fetch availability client-side
+  useEffect(() => {
+    if (!business?.id) return;
+    async function fetchAvail() {
+      try {
+        const qs = new URLSearchParams({ businessId: business!.id, days: '7' }).toString();
+        const res = await fetch(`/api/availability/next?${qs}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setNextAvailable(data.nextAvailable);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todaySlots = data.dates?.[todayStr]?.length ?? 0;
+        setSlotsToday(todaySlots);
+      } catch { /* non-critical */ }
+      finally { setAvailLoading(false); }
+    }
+    fetchAvail();
+  }, [business?.id]);
 
   if (!business) {
     return (
@@ -577,7 +596,12 @@ export default function BusinessProfilePage({ business, nextAvailable, slotsToda
 
                   {/* Next available info */}
                   <div className="px-6 py-4 border-b border-[#E2E8F0]">
-                    {nextAvailable ? (
+                    {availLoading ? (
+                      <div className="rounded-xl border-2 border-[#E2E8F0] px-4 py-3 text-center">
+                        <div className="w-4 h-4 border-2 border-[#0D9488] border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+                        <p className="text-[12px] text-[#94A3B8]">Checking availability&hellip;</p>
+                      </div>
+                    ) : nextAvailable ? (
                       <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 px-4 py-3">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -689,7 +713,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       },
     });
 
-    if (!business) return { props: { business: null, nextAvailable: null, slotsToday: 0 } };
+    if (!business) return { props: { business: null } };
 
     const reviews = business.bookings
       .filter((b) => b.review)
@@ -705,13 +729,8 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : null;
 
-    // Compute next availability
-    const availData = await getNextAvailableForBusiness(business.id);
-
     return {
       props: {
-        nextAvailable: availData.nextAvailable,
-        slotsToday: availData.slotsToday,
         business: {
           id:              business.id,
           name:            business.name,
@@ -738,6 +757,6 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     };
   } catch (err) {
     console.error('[slug] SSP error:', err);
-    return { props: { business: null, nextAvailable: null, slotsToday: 0 } };
+    return { props: { business: null } };
   }
 };
