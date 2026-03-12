@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/auth';
 import prisma from '../../../lib/prisma';
 import { UserRole } from '@prisma/client';
+import { geocodeAU } from '../../../lib/geocode';
 
 function slugify(text: string): string {
   return text
@@ -80,6 +81,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     }),
   ]);
+
+  // Fire-and-forget geocoding — don't block the response
+  if (business.suburb || business.city || business.state) {
+    geocodeAU(business.suburb, business.city, business.state)
+      .then((geo) => {
+        if (geo) {
+          return prisma.business.update({
+            where: { id: business.id },
+            data: { latitude: geo.lat, longitude: geo.lng },
+          });
+        }
+      })
+      .catch(() => { /* best-effort */ });
+  }
 
   return res.status(201).json(business);
 }

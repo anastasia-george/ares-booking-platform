@@ -100,6 +100,8 @@ model Business {
   suburb              String?  // e.g. "Surry Hills"
   city                String?  // e.g. "Sydney"
   state               String?  // e.g. "NSW"
+  latitude            Float?   // geocoded from suburb/city/state
+  longitude           Float?   // geocoded from suburb/city/state
   bio                 String?  @db.Text
   instagramHandle     String?
   isAcceptingModels   Boolean  @default(true)

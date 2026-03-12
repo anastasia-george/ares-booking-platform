@@ -8,9 +8,10 @@ import {
   Search, MapPin, Heart, Star, ChevronRight,
   Sparkles, Scissors, Zap, Droplets, Hand,
   Wind, Flower2, Brush, Waves, SlidersHorizontal,
-  Clock, CalendarCheck,
+  Clock, CalendarCheck, Navigation,
 } from 'lucide-react';
 import prismaClient from '../lib/prisma';
+import { haversineKm } from '../lib/geo';
 
 // ---------------------------------------------------------------------------
 // Image maps
@@ -69,6 +70,7 @@ interface BusinessCard {
   slug: string;
   name: string;
   suburb: string | null;
+  city: string | null;
   state: string | null;
   verified: boolean;
   category: string | null;
@@ -76,9 +78,12 @@ interface BusinessCard {
   serviceCount: number;
   nextAvailable: string | null;
   slotsToday: number;
+  latitude: number | null;
+  longitude: number | null;
+  distance?: number; // km, computed client-side when user location known
 }
 
-type SortOption = 'soonest' | 'rated' | 'value';
+type SortOption = 'soonest' | 'rated' | 'value' | 'closest';
 type TimeFilter = '' | 'today' | 'tomorrow' | 'week' | 'weekend';
 
 const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
@@ -91,6 +96,7 @@ const TIME_FILTERS: { label: string; value: TimeFilter }[] = [
 
 const SORT_OPTIONS: { label: string; value: SortOption }[] = [
   { label: 'Soonest Available', value: 'soonest' },
+  { label: 'Closest', value: 'closest' },
   { label: 'Highest Rated', value: 'rated' },
   { label: 'Best Value', value: 'value' },
 ];
@@ -135,6 +141,46 @@ export default function Home({ listings: ssrListings }: Props) {
   const [timeFilter, setTimeFilter]       = useState<TimeFilter>('');
   const [sortBy, setSortBy]               = useState<SortOption>('soonest');
   const [listings, setListings]           = useState(ssrListings);
+  const [userLat, setUserLat]             = useState<number | null>(null);
+  const [userLng, setUserLng]             = useState<number | null>(null);
+  const [nearMeActive, setNearMeActive]   = useState(false);
+  const [geoError, setGeoError]           = useState('');
+
+  // Compute distances when user location is known
+  useEffect(() => {
+    if (userLat == null || userLng == null) return;
+    setListings((prev) =>
+      prev.map((l) => ({
+        ...l,
+        distance:
+          l.latitude != null && l.longitude != null
+            ? haversineKm(userLat, userLng, l.latitude, l.longitude)
+            : undefined,
+      }))
+    );
+  }, [userLat, userLng]);
+
+  function handleNearMe() {
+    if (nearMeActive) {
+      setNearMeActive(false);
+      return;
+    }
+    setGeoError('');
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation not supported');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setNearMeActive(true);
+        setSortBy('closest');
+      },
+      () => setGeoError('Location access denied'),
+      { enableHighAccuracy: false, timeout: 8000 }
+    );
+  }
 
   // Fetch availability data client-side (keeps SSR fast)
   useEffect(() => {
@@ -168,7 +214,7 @@ export default function Home({ listings: ssrListings }: Props) {
   const filtered = useMemo(() => {
     let result = listings.filter((b) => {
       if (activeCat && b.category !== activeCat) return false;
-      if (heroLoc && !`${b.suburb ?? ''} ${b.state ?? ''}`.toLowerCase().includes(heroLoc.toLowerCase())) return false;
+      if (heroLoc && !`${b.suburb ?? ''} ${b.city ?? ''} ${b.state ?? ''}`.toLowerCase().includes(heroLoc.toLowerCase())) return false;
       if (heroTreatment && !b.name.toLowerCase().includes(heroTreatment.toLowerCase())) return false;
 
       // Time filter
@@ -194,11 +240,20 @@ export default function Home({ listings: ssrListings }: Props) {
         return false; // No availability at all
       }
 
+      // Near Me radius filter (25km)
+      if (nearMeActive && b.distance != null && b.distance > 25) return false;
+      if (nearMeActive && b.distance == null) return false;
+
       return true;
     });
 
     // Sort
     result = [...result].sort((a, b) => {
+      if (sortBy === 'closest') {
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      }
       if (sortBy === 'soonest') {
         if (!a.nextAvailable) return 1;
         if (!b.nextAvailable) return -1;
@@ -209,7 +264,7 @@ export default function Home({ listings: ssrListings }: Props) {
     });
 
     return result;
-  }, [listings, activeCat, heroLoc, heroTreatment, timeFilter, sortBy]);
+  }, [listings, activeCat, heroLoc, heroTreatment, timeFilter, sortBy, nearMeActive]);
 
   function toggleSave(slug: string) {
     setSaved((prev) => {
@@ -432,7 +487,21 @@ export default function Home({ listings: ssrListings }: Props) {
                 {label}
               </button>
             ))}
+            <button
+              onClick={handleNearMe}
+              className={`
+                shrink-0 px-4 py-2 rounded-full text-[13px] font-semibold border transition-all duration-150 flex items-center gap-1.5
+                ${nearMeActive
+                  ? 'bg-[#0D9488] text-white border-[#0D9488]'
+                  : 'bg-white text-[#64748B] border-[#E2E8F0] hover:border-[#94A3B8]'
+                }
+              `}
+            >
+              <Navigation className="w-3.5 h-3.5" strokeWidth={2} />
+              Near Me
+            </button>
           </div>
+          {geoError && <p className="text-[12px] text-red-400 mt-1">{geoError}</p>}
           <div className="ml-auto">
             <select
               value={sortBy}
@@ -514,6 +583,13 @@ export default function Home({ listings: ssrListings }: Props) {
                         {(biz.suburb || biz.state) && (
                           <p className="text-[13px] text-[#94A3B8] mt-[1px] truncate">
                             {[biz.suburb, biz.state].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                        {/* Distance badge */}
+                        {biz.distance != null && (
+                          <p className="text-[12px] text-[#64748B] mt-[1px] flex items-center gap-1">
+                            <Navigation className="w-3 h-3" strokeWidth={2} />
+                            {biz.distance < 1 ? `${Math.round(biz.distance * 1000)}m` : `${biz.distance.toFixed(1)} km`}
                           </p>
                         )}
                         {/* Availability badge */}
@@ -658,7 +734,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     const businesses = await prismaClient.business.findMany({
       where: { services: { some: { isActive: true } } },
       select: {
-        slug: true, name: true, suburb: true, state: true, verified: true,
+        slug: true, name: true, suburb: true, city: true, state: true, latitude: true, longitude: true, verified: true,
         services: { where: { isActive: true }, select: { price: true, category: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -669,7 +745,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
       slug:          b.slug,
       name:          b.name,
       suburb:        b.suburb ?? null,
+      city:          b.city   ?? null,
       state:         b.state  ?? null,
+      latitude:      b.latitude ?? null,
+      longitude:     b.longitude ?? null,
       verified:      b.verified,
       category:      b.services[0]?.category ?? null,
       minPrice:      b.services.length > 0 ? Math.min(...b.services.map((s) => s.price)) : 0,

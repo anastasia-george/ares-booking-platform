@@ -88,6 +88,8 @@ interface BusinessData {
   suburb: string | null;
   city: string | null;
   state: string | null;
+  latitude: number | null;
+  longitude: number | null;
   bio: string | null;
   instagramHandle: string | null;
   avgRating: number | null;
@@ -471,19 +473,23 @@ export default function BusinessProfilePage({ business }: Props) {
                     {[business.suburb, business.city, business.state].filter(Boolean).join(', ')}
                   </p>
                 )}
-                <div
-                  className="relative rounded-2xl overflow-hidden bg-[#E2E8F0]"
-                  style={{ height: 200 }}
-                >
+                {business.latitude && business.longitude ? (
+                  <div className="rounded-2xl overflow-hidden" style={{ height: 200 }}>
+                    <iframe
+                      title="Business location"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${business.longitude - 0.01},${business.latitude - 0.008},${business.longitude + 0.01},${business.latitude + 0.008}&layer=mapnik&marker=${business.latitude},${business.longitude}`}
+                    />
+                  </div>
+                ) : (
                   <div
-                    className="w-full h-full"
-                    style={{
-                      backgroundImage: `url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1200&auto=format&fit=crop')`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-[#0F172A]/20 flex items-center justify-center">
+                    className="relative rounded-2xl overflow-hidden bg-[#E2E8F0] flex items-center justify-center"
+                    style={{ height: 200 }}
+                  >
                     <div className="bg-white rounded-2xl px-5 py-3 shadow-xl flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-[#0D9488] flex items-center justify-center shrink-0">
                         <MapPin className="w-4 h-4 text-white fill-white" strokeWidth={2} />
@@ -496,7 +502,7 @@ export default function BusinessProfilePage({ business }: Props) {
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
                 <p className="mt-3 text-[12px] text-[#94A3B8]">Exact address shared after booking confirmation.</p>
               </div>
 
@@ -738,6 +744,8 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
           suburb:          business.suburb          ?? null,
           city:            business.city            ?? null,
           state:           business.state           ?? null,
+          latitude:        business.latitude        ?? null,
+          longitude:       business.longitude       ?? null,
           bio:             business.bio             ?? null,
           instagramHandle: business.instagramHandle ?? null,
           verified:        business.verified,

@@ -1,9 +1,10 @@
 // pages/api/availability/browse.ts
-// GET /api/availability/browse?filter=today|tomorrow|week|weekend&suburb=&state=
+// GET /api/availability/browse?filter=today|tomorrow|week|weekend&suburb=&state=&lat=&lng=&radiusKm=
 // Returns businesses that have availability matching the filter, with nextAvailable per business.
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '../../../lib/prisma';
 import { getSlotsForDate } from '../../../lib/availability';
+import { haversineKm } from '../../../lib/geo';
 
 type Filter = 'today' | 'tomorrow' | 'week' | 'weekend';
 
@@ -52,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { filter, suburb, state } = req.query;
+  const { filter, suburb, state, lat, lng, radiusKm } = req.query;
   const validFilters: Filter[] = ['today', 'tomorrow', 'week', 'weekend'];
 
   if (!filter || !validFilters.includes(filter as Filter)) {
@@ -75,6 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: true,
         suburb: true,
         state: true,
+        latitude: true,
+        longitude: true,
         verified: true,
         services: {
           where: { isActive: true },
@@ -85,6 +88,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       take: 100,
     });
+
+    // Parse geo params
+    const userLat = lat ? parseFloat(lat as string) : null;
+    const userLng = lng ? parseFloat(lng as string) : null;
+    const radius  = radiusKm ? parseFloat(radiusKm as string) : 25;
 
     const results: Array<{
       businessId: string;
@@ -97,11 +105,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       minPrice: number;
       nextAvailable: string | null;
       slotsCount: number;
+      distanceKm: number | null;
     }> = [];
 
     for (const biz of businesses) {
       const service = biz.services[0];
       if (!service) continue;
+
+      // Compute distance if user provided lat/lng
+      let distanceKm: number | null = null;
+      if (userLat !== null && userLng !== null && biz.latitude && biz.longitude) {
+        distanceKm = haversineKm(userLat, userLng, biz.latitude, biz.longitude);
+        if (distanceKm > radius) continue; // outside radius, skip
+      }
 
       let nextAvailable: string | null = null;
       let slotsCount = 0;
@@ -131,6 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           minPrice: service.price,
           nextAvailable,
           slotsCount,
+          distanceKm: distanceKm !== null ? Math.round(distanceKm * 10) / 10 : null,
         });
       }
     }
