@@ -1,6 +1,7 @@
 // pages/index.tsx
-import { GetServerSideProps } from 'next';
+import { GetStaticProps } from 'next';
 import Head from 'next/head';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
@@ -317,13 +318,17 @@ export default function Home({ listings: ssrListings }: Props) {
       ================================================================ */}
       <section
         className="relative flex flex-col items-center justify-center overflow-hidden"
-        style={{
-          minHeight: 580,
-          backgroundImage: `url('/images/hero.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 35%',
-        }}
+        style={{ minHeight: 580 }}
       >
+        {/* Hero background image — optimised WebP via next/image */}
+        <Image
+          src="/images/hero.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[center_35%]"
+        />
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/60 via-[#0F172A]/50 to-[#0F172A]/40" />
 
@@ -410,17 +415,18 @@ export default function Home({ listings: ssrListings }: Props) {
                 <button
                   key={label}
                   onClick={() => setActiveCat(value)}
+                  aria-label={`Filter by ${label}`}
                   className={`
                     flex flex-col items-center gap-1.5 px-5 py-4 shrink-0
                     text-[11px] font-semibold tracking-wide whitespace-nowrap
                     border-b-[2.5px] transition-all duration-150
                     ${active
                       ? 'border-[#0F172A] text-[#0F172A]'
-                      : 'border-transparent text-[#94A3B8] hover:text-[#475569] hover:border-[#CBD5E1]'
+                      : 'border-transparent text-[#64748B] hover:text-[#475569] hover:border-[#CBD5E1]'
                     }
                   `}
                 >
-                  <Icon className={`w-[22px] h-[22px] ${active ? 'text-[#0F172A]' : 'text-[#94A3B8]'}`} strokeWidth={1.75} />
+                  <Icon className={`w-[22px] h-[22px] ${active ? 'text-[#0F172A]' : 'text-[#64748B]'}`} strokeWidth={1.75} />
                   {label}
                 </button>
               );
@@ -448,8 +454,8 @@ export default function Home({ listings: ssrListings }: Props) {
                   href={`/businesses/${biz.slug}`}
                   className="shrink-0 flex items-center gap-3 bg-white border border-[#E2E8F0] rounded-2xl px-4 py-3 hover:border-[#0D9488] transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-[#E2E8F0] shrink-0">
-                    <img src={catImage(biz.category, 0)} alt="" className="w-full h-full object-cover" />
+                  <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-[#E2E8F0] shrink-0">
+                    <Image src={catImage(biz.category, 0)} alt="" fill sizes="40px" className="object-cover" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-[#0F172A] truncate">{biz.name}</p>
@@ -503,7 +509,9 @@ export default function Home({ listings: ssrListings }: Props) {
           </div>
           {geoError && <p className="text-[12px] text-red-400 mt-1">{geoError}</p>}
           <div className="ml-auto">
+            <label htmlFor="sort-select" className="sr-only">Sort listings</label>
             <select
+              id="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="text-[13px] font-semibold text-[#0F172A] bg-white border border-[#E2E8F0] rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#0D9488]/30"
@@ -528,7 +536,7 @@ export default function Home({ listings: ssrListings }: Props) {
           <div className="text-center py-28 flex flex-col items-center gap-4">
             <Search className="w-12 h-12 text-[#CBD5E1]" />
             <p className="text-lg font-bold text-[#0F172A]">No listings found</p>
-            <p className="text-sm text-[#94A3B8]">Try a different category or location.</p>
+            <p className="text-sm text-[#64748B]">Try a different category or location.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-9">
@@ -544,11 +552,12 @@ export default function Home({ listings: ssrListings }: Props) {
                   {/* Image */}
                   <Link href={`/businesses/${biz.slug}`} className="block">
                     <div className="relative rounded-2xl overflow-hidden bg-[#E2E8F0] mb-3" style={{ aspectRatio: '1/1' }}>
-                      <img
+                      <Image
                         src={catImage(biz.category, i)}
                         alt={biz.name}
-                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       />
                       {biz.verified && (
                         <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#0F172A] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide">
@@ -596,7 +605,7 @@ export default function Home({ listings: ssrListings }: Props) {
                         {(() => {
                           const badge = availabilityBadge(biz);
                           if (!badge) return (
-                            <p className="text-[12px] text-[#CBD5E1] mt-[2px] flex items-center gap-1">
+                      <p className="text-[12px] text-[#6B7280] mt-[2px] flex items-center gap-1">
                               <Clock className="w-3 h-3" strokeWidth={2} />
                               No upcoming availability
                             </p>
@@ -632,7 +641,7 @@ export default function Home({ listings: ssrListings }: Props) {
                       )}
                     </div>
                     {/* Review count faint */}
-                    <p className="text-[12px] text-[#CBD5E1] mt-0.5">({reviews} reviews)</p>
+                    <p className="text-[12px] text-[#6B7280] mt-0.5">({reviews} reviews)</p>
                   </Link>
                 </article>
               );
@@ -691,12 +700,14 @@ export default function Home({ listings: ssrListings }: Props) {
       ================================================================ */}
       <section
         className="relative py-24 overflow-hidden"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=2000&auto=format&fit=crop')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
       >
+        <Image
+          src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=2000&auto=format&fit=crop"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-center"
+        />
         <div className="absolute inset-0 bg-[#0F172A]/70" />
         <div className="relative z-10 max-w-xl mx-auto px-4 sm:px-6 text-center">
           <h2 className="text-3xl sm:text-4xl font-black text-white mb-4 leading-tight">
@@ -711,12 +722,12 @@ export default function Home({ listings: ssrListings }: Props) {
                 List a Model Call
               </Link>
             ) : (
-              <button onClick={() => signIn()} className="px-8 py-4 rounded-full font-bold text-[15px] bg-[#0D9488] text-white hover:bg-teal-600 transition-all duration-200 shadow-lg">
+              <button onClick={() => signIn()} className="px-8 py-4 rounded-full font-bold text-[15px] bg-[#0F766E] text-white hover:bg-teal-800 transition-all duration-200 shadow-lg">
                 List a Model Call
               </button>
             )}
             <Link href="/for-businesses" className="px-8 py-4 rounded-full font-bold text-[15px] border-2 border-white/35 text-white hover:border-white transition-all duration-200">
-              Learn more
+              Learn more about listing
             </Link>
           </div>
         </div>
@@ -729,7 +740,7 @@ export default function Home({ listings: ssrListings }: Props) {
 // ---------------------------------------------------------------------------
 // Data fetching
 // ---------------------------------------------------------------------------
-export const getServerSideProps: GetServerSideProps<Props> = async () => {
+export const getStaticProps: GetStaticProps<Props> = async () => {
   try {
     const businesses = await prismaClient.business.findMany({
       where: { services: { some: { isActive: true } } },
@@ -757,9 +768,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
       slotsToday:    0,
     }));
 
-    return { props: { listings } };
+    return { props: { listings }, revalidate: 60 };
   } catch (err) {
-    console.error('Homepage SSP error:', err);
-    return { props: { listings: [] } };
+    console.error('Homepage ISR error:', err);
+    return { props: { listings: [] }, revalidate: 60 };
   }
 };

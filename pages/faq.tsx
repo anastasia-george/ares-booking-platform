@@ -43,10 +43,11 @@ function FAQItem({ q, a }: { q: string; a: string }) {
     <div className="border-b border-gray-100">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="w-full flex justify-between items-center py-5 text-left gap-4"
       >
         <span className="text-sm font-semibold" style={{ color: '#0F172A' }}>{q}</span>
-        <span className="text-xl shrink-0 transition-transform" style={{ color: '#0D9488', transform: open ? 'rotate(45deg)' : 'none' }}>+</span>
+        <span className="text-xl shrink-0 transition-transform" style={{ color: '#0D9488', transform: open ? 'rotate(45deg)' : 'none' }} aria-hidden="true">+</span>
       </button>
       {open && (
         <p className="text-sm pb-5 leading-relaxed" style={{ color: '#64748B' }}>{a}</p>

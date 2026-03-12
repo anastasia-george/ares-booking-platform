@@ -9,14 +9,12 @@
   --color-cream: #F8FAFC;
   --color-slate: #64748B;
   --color-white: #FFFFFF;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 html {
-  font-family: var(--font-sans);
+  font-family: var(--font-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-cream);
   color: var(--color-navy);
-  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -44,9 +42,3 @@ body {
   outline-offset: 2px;
 }
 
-/* Smooth page transitions */
-a, button {
-  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}

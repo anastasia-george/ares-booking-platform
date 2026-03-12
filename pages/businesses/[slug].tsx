@@ -1,6 +1,7 @@
 // pages/businesses/[slug].tsx
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
@@ -280,19 +281,24 @@ export default function BusinessProfilePage({ business }: Props) {
             <div className="grid grid-cols-4 grid-rows-2 gap-1.5 h-full">
               {/* Hero: left half, full height */}
               <div className="col-span-2 row-span-2 overflow-hidden relative group">
-                <img
+                <Image
                   src={photos[0]}
                   alt={business.name}
-                  className="w-full h-full object-cover group-hover:scale-[1.025] transition-transform duration-700"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover group-hover:scale-[1.025] transition-transform duration-700"
                 />
               </div>
               {/* 4 small tiles */}
               {photos.slice(1, 5).map((src, idx) => (
                 <div key={idx} className="overflow-hidden relative group">
-                  <img
+                  <Image
                     src={src}
                     alt=""
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                    fill
+                    sizes="25vw"
+                    className="object-cover group-hover:scale-[1.04] transition-transform duration-500"
                   />
                 </div>
               ))}
@@ -348,7 +354,7 @@ export default function BusinessProfilePage({ business }: Props) {
               {/* Host */}
               <div className="flex items-center gap-4 pb-8 border-b border-[#E2E8F0]">
                 <div className="relative shrink-0">
-                  <img src="https://i.pravatar.cc/80?img=45" alt="Host" className="w-14 h-14 rounded-full object-cover" />
+                  <Image src="https://i.pravatar.cc/80?img=45" alt="Host" width={56} height={56} className="rounded-full object-cover" />
                   {business.verified && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-[#0D9488] rounded-full flex items-center justify-center border-2 border-white">
                       <CheckCircle2 className="w-3 h-3 text-white" strokeWidth={2.5} />

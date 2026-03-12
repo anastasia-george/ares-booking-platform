@@ -71,6 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json({ dates, nextAvailable, totalSlots });
   } catch (error) {
     console.error('[GET /api/availability/next]', error);

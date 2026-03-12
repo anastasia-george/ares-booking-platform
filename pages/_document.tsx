@@ -28,22 +28,24 @@ export default function Document() {
         {/* Open Graph defaults (overridden per-page) */}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Model Call" />
-        <meta property="og:image" content="https://modelcall.app/brand/og-default.svg" />
+        <meta property="og:image" content="https://modelcall.app/brand/og-default.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="en_AU" />
 
         {/* Twitter / X card defaults (overridden per-page) */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://modelcall.app/brand/og-default.svg" />
+        <meta name="twitter:image" content="https://modelcall.app/brand/og-default.png" />
 
-        {/* Font preconnect */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
+        {/* hreflang — AU-targeted site */}
+        <link rel="alternate" hrefLang="en-AU" href="https://modelcall.app" />
+
+        {/* Preconnect to image CDN */}
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="" />
+
+        {/* Preload LCP hero image */}
+        <link rel="preload" as="image" type="image/webp" href="/images/hero.webp" />
       </Head>
       <body>
         <Main />

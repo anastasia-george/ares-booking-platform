@@ -159,6 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return a.nextAvailable.localeCompare(b.nextAvailable);
     });
 
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     return res.status(200).json({ filter, businesses: results, count: results.length });
   } catch (error) {
     console.error('[GET /api/availability/browse]', error);

@@ -2,7 +2,7 @@
 // Stripe payment form — handles both paid (PaymentIntent) and free (SetupIntent) flows.
 // Must NOT be rendered server-side. Import via `next/dynamic` with `{ ssr: false }`.
 import React, { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
 import {
   Elements,
   PaymentElement,
@@ -10,9 +10,16 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ''
-);
+// Lazy-load Stripe SDK — the ~40 KB bundle is only fetched when StripeCheckout renders.
+let stripePromise: Promise<Stripe | null> | null = null;
+function getStripe() {
+  if (!stripePromise) {
+    stripePromise = import('@stripe/stripe-js').then((m) =>
+      m.loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '')
+    );
+  }
+  return stripePromise;
+}
 
 function CheckoutForm({
   isFree,
@@ -113,7 +120,7 @@ export default function StripeCheckout({
 }) {
   return (
     <Elements
-      stripe={stripePromise}
+      stripe={getStripe()}
       options={{ clientSecret, appearance: { theme: 'stripe' } }}
     >
       <CheckoutForm isFree={isFree} onSuccess={onSuccess} onCancel={onCancel} />

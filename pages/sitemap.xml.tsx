@@ -1,6 +1,6 @@
 // pages/sitemap.xml.tsx — Dynamic sitemap for SEO
 import { GetServerSideProps } from 'next';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 
 const SITE = 'https://modelcall.app';
 
@@ -34,7 +34,6 @@ ${pages
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
-  const prisma = new PrismaClient();
   try {
     const businesses = await prisma.business.findMany({
       where: { services: { some: { isActive: true } } },
@@ -64,8 +63,6 @@ export const getServerSideProps: GetServerSideProps = async ({ res }) => {
     console.error('Sitemap error:', err);
     res.statusCode = 500;
     res.end();
-  } finally {
-    await prisma.$disconnect();
   }
 
   return { props: {} };

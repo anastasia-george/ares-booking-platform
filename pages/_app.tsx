@@ -4,6 +4,16 @@ import type { AppProps } from 'next/app';
 import { SessionProvider, useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-jakarta',
+});
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 // ── Brand logo mark — M silhouette + teal dot ──────────────────────────────
 function LogoMark({ size = 28, dark = true }: { size?: number; dark?: boolean }) {
@@ -37,11 +47,11 @@ function NavBar() {
   );
 
   return (
-    <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-[#E2E8F0]">
+    <nav className="fixed w-full z-50 bg-white border-b border-[#E2E8F0] md:bg-white/80 md:backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+        <Link href="/" className="flex items-center gap-2 shrink-0 group" aria-label="Model Call home">
           <LogoMark size={28} dark={true} />
           <span className="text-xl font-extrabold text-[#0F172A] tracking-tight">Model Call</span>
         </Link>
@@ -67,7 +77,7 @@ function NavBar() {
                   Log In
                 </button>
                 <button onClick={() => signIn()}
-                  className="bg-[#0D9488] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-teal-700 transition-all duration-200 shadow-sm">
+                  className="bg-[#0F766E] text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-teal-800 transition-all duration-200 shadow-sm">
                   Sign Up
                 </button>
               </>
@@ -93,7 +103,7 @@ function NavBar() {
 }
 
 function Footer() {
-  const col = 'text-sm text-[#64748B] hover:text-white transition-colors duration-150';
+  const col = 'text-sm text-[#94A3B8] hover:text-white transition-colors duration-150';
   return (
     <footer className="bg-[#0F172A]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14">
@@ -105,7 +115,7 @@ function Footer() {
               <LogoMark size={26} dark={false} />
               <span className="text-lg font-extrabold text-white tracking-tight">Model Call</span>
             </div>
-            <p className="text-sm text-[#4B5563] leading-relaxed">
+            <p className="text-sm text-[#94A3B8] leading-relaxed">
               Australia&rsquo;s marketplace for free and discounted beauty model calls.
             </p>
           </div>
@@ -113,7 +123,7 @@ function Footer() {
           {/* Columns */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
             <div>
-              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Platform</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#94A3B8] mb-4">Platform</p>
               <ul className="space-y-3">
                 <li><Link href="/#browse"        className={col}>Browse Treatments</Link></li>
                 <li><Link href="/for-models"     className={col}>For Models</Link></li>
@@ -123,7 +133,7 @@ function Footer() {
               </ul>
             </div>
             <div>
-              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Company</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#94A3B8] mb-4">Company</p>
               <ul className="space-y-3">
                 <li><Link href="/about"                    className={col}>About Us</Link></li>
                 <li><Link href="/faq"                      className={col}>FAQ</Link></li>
@@ -131,7 +141,7 @@ function Footer() {
               </ul>
             </div>
             <div>
-              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#64748B] mb-4">Legal</p>
+              <p className="text-xs font-bold tracking-[0.15em] uppercase text-[#94A3B8] mb-4">Legal</p>
               <ul className="space-y-3">
                 <li><Link href="/legal/privacy" className={col}>Privacy Policy</Link></li>
                 <li><Link href="/legal/terms"   className={col}>Terms of Service</Link></li>
@@ -140,8 +150,8 @@ function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-[#1E293B] text-xs text-center text-[#374151]">
-          &copy; {new Date().getFullYear()} Model Call. All rights reserved.
+        <div className="mt-10 pt-6 border-t border-[#1E293B] text-xs text-center text-[#94A3B8]">
+          &copy; {CURRENT_YEAR} Model Call. All rights reserved.
         </div>
       </div>
     </footer>
@@ -155,11 +165,13 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <SessionProvider session={session as never}>
-      {!hideShell && <NavBar />}
-      <main className={`min-h-screen${!hideShell ? ' pt-16' : ''}`}>
-        <Component {...rest} />
-      </main>
-      {!hideShell && <Footer />}
+      <div className={jakarta.variable}>
+        {!hideShell && <NavBar />}
+        <main className={`min-h-screen${!hideShell ? ' pt-16' : ''}`}>
+          <Component {...rest} />
+        </main>
+        {!hideShell && <Footer />}
+      </div>
     </SessionProvider>
   );
 }
