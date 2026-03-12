@@ -2,7 +2,7 @@
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import {
   Search, MapPin, Heart, Star, ChevronRight,
@@ -11,7 +11,6 @@ import {
   Clock, CalendarCheck,
 } from 'lucide-react';
 import prismaClient from '../lib/prisma';
-import { getNextAvailableForBusiness } from '../lib/availability';
 
 // ---------------------------------------------------------------------------
 // Image maps
@@ -127,7 +126,7 @@ interface Props {
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
-export default function Home({ listings }: Props) {
+export default function Home({ listings: ssrListings }: Props) {
   const { data: session } = useSession();
   const [activeCat, setActiveCat]         = useState('');
   const [heroLoc, setHeroLoc]             = useState('');
@@ -135,6 +134,36 @@ export default function Home({ listings }: Props) {
   const [saved, setSaved]                 = useState<Set<string>>(new Set());
   const [timeFilter, setTimeFilter]       = useState<TimeFilter>('');
   const [sortBy, setSortBy]               = useState<SortOption>('soonest');
+  const [listings, setListings]           = useState(ssrListings);
+
+  // Fetch availability data client-side (keeps SSR fast)
+  useEffect(() => {
+    async function fetchAvailability() {
+      try {
+        const res = await fetch('/api/availability/browse?filter=week');
+        if (!res.ok) return;
+        const data = await res.json();
+        const availMap = new Map<string, { nextAvailable: string | null; slotsCount: number }>();
+        for (const biz of data.businesses ?? []) {
+          availMap.set(biz.slug, { nextAvailable: biz.nextAvailable, slotsCount: biz.slotsCount });
+        }
+        setListings((prev) =>
+          prev.map((l) => {
+            const avail = availMap.get(l.slug);
+            if (!avail) return l;
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const isToday = avail.nextAvailable?.slice(0, 10) === todayStr;
+            return {
+              ...l,
+              nextAvailable: avail.nextAvailable,
+              slotsToday: isToday ? avail.slotsCount : 0,
+            };
+          })
+        );
+      } catch { /* non-critical */ }
+    }
+    fetchAvailability();
+  }, []);
 
   const filtered = useMemo(() => {
     let result = listings.filter((b) => {
@@ -629,19 +658,14 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
     const businesses = await prismaClient.business.findMany({
       where: { services: { some: { isActive: true } } },
       select: {
-        id: true, slug: true, name: true, suburb: true, state: true, verified: true,
+        slug: true, name: true, suburb: true, state: true, verified: true,
         services: { where: { isActive: true }, select: { price: true, category: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 60,
     });
 
-    // Compute availability in parallel
-    const availResults = await Promise.all(
-      businesses.map((b) => getNextAvailableForBusiness(b.id))
-    );
-
-    const listings: BusinessCard[] = businesses.map((b, i) => ({
+    const listings: BusinessCard[] = businesses.map((b) => ({
       slug:          b.slug,
       name:          b.name,
       suburb:        b.suburb ?? null,
@@ -650,16 +674,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async () => {
       category:      b.services[0]?.category ?? null,
       minPrice:      b.services.length > 0 ? Math.min(...b.services.map((s) => s.price)) : 0,
       serviceCount:  b.services.length,
-      nextAvailable: availResults[i].nextAvailable,
-      slotsToday:    availResults[i].slotsToday,
+      nextAvailable: null,
+      slotsToday:    0,
     }));
-
-    // Default sort: soonest available first
-    listings.sort((a, b) => {
-      if (!a.nextAvailable) return 1;
-      if (!b.nextAvailable) return -1;
-      return a.nextAvailable.localeCompare(b.nextAvailable);
-    });
 
     return { props: { listings } };
   } catch (err) {
