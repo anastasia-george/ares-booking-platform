@@ -319,7 +319,7 @@ export default function Home({ listings: ssrListings }: Props) {
         className="relative flex flex-col items-center justify-center overflow-hidden"
         style={{
           minHeight: 580,
-          backgroundImage: `url('https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=2000&auto=format&fit=crop')`,
+          backgroundImage: `url('/images/hero.png')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center 35%',
         }}
