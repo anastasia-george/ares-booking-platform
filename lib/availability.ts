@@ -57,30 +57,36 @@ export async function getSlotsForDate(
   if (!hours) return [];
 
   const totalSlotDuration = durationMin + bufferMin;
-  const slots: string[] = [];
-  let current = new Date(`${dateStr}T${hours.startTime}:00.000Z`);
+  const dayStart = new Date(`${dateStr}T${hours.startTime}:00.000Z`);
   const dayEnd = new Date(`${dateStr}T${hours.endTime}:00.000Z`);
   const now = new Date();
 
+  // Batch-fetch all active bookings for this business on this day
+  const bookings = await prisma.booking.findMany({
+    where: {
+      businessId,
+      status: { in: ACTIVE_STATUSES },
+      startTime: { lt: dayEnd },
+      endTime: { gt: dayStart },
+    },
+    select: { startTime: true, endTime: true },
+  });
+
+  const slots: string[] = [];
+  let current = new Date(dayStart);
+
   while (current.getTime() + totalSlotDuration * 60000 <= dayEnd.getTime()) {
-    // Skip slots in the past
     if (current.getTime() > now.getTime()) {
-      const slotStart = new Date(current);
-      const slotEnd = new Date(current.getTime() + totalSlotDuration * 60000);
+      const slotStart = current.getTime();
+      const slotEnd = slotStart + totalSlotDuration * 60000;
 
-      const conflict = await prisma.booking.findFirst({
-        where: {
-          businessId,
-          status: { in: ACTIVE_STATUSES },
-          AND: [
-            { startTime: { lt: slotEnd } },
-            { endTime: { gt: slotStart } },
-          ],
-        },
-      });
+      // Check conflict in-memory
+      const hasConflict = bookings.some(
+        (b) => b.startTime.getTime() < slotEnd && b.endTime.getTime() > slotStart
+      );
 
-      if (!conflict) {
-        slots.push(slotStart.toISOString());
+      if (!hasConflict) {
+        slots.push(new Date(slotStart).toISOString());
       }
     }
 
