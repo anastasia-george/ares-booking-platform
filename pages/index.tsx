@@ -696,6 +696,54 @@ export default function Home({ listings: ssrListings }: Props) {
       </section>
 
       {/* ================================================================
+          HOW IT WORKS
+      ================================================================ */}
+      <section id="how-it-works" className="py-20 bg-[#F8FAFC]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#0D9488]">How it works</span>
+            <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A] mt-2 leading-tight">
+              Free treatments in three steps
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {[
+              {
+                step: '01',
+                title: 'Browse & filter',
+                desc: 'Search by suburb, treatment type, or price. Filter to free only, or sort by availability. No account needed to look.',
+              },
+              {
+                step: '02',
+                title: 'Book in seconds',
+                desc: 'Pick a date and time that works for you and confirm your spot. For free sessions, a card is held on file only, no charge upfront.',
+              },
+              {
+                step: '03',
+                title: 'Show up and enjoy',
+                desc: 'Arrive at your booked time, enjoy your treatment, and leave a review. That\'s it. Your next one is already waiting.',
+              },
+            ].map((s) => (
+              <div key={s.step} className="relative bg-white rounded-3xl p-8 border border-[#E2E8F0] shadow-sm">
+                <span className="text-[48px] font-black leading-none text-[#F1F5F9]">{s.step}</span>
+                <h3 className="text-[16px] font-black text-[#0F172A] mt-3 mb-2">{s.title}</h3>
+                <p className="text-[14px] text-[#64748B] leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <a
+              href="#browse"
+              onClick={(e) => { e.preventDefault(); document.getElementById('browse')?.scrollIntoView({ behavior: 'smooth' }); }}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-[15px] bg-[#0D9488] text-white hover:bg-teal-600 transition-all duration-200 shadow-lg"
+            >
+              Browse Treatments
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================
           CTA BANNER
       ================================================================ */}
       <section
