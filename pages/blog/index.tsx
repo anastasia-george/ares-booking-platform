@@ -14,7 +14,7 @@ const POSTS = [
   {
     slug: 'free-beauty-treatments-sydney',
     title: 'How to Find Free Beauty Treatments in Sydney (2026)',
-    excerpt: 'Sydney has dozens of clinics and academies offering free lashes, facials, injectables and more through model calls. We cover the best ways to find them \u2014 and how to book safely.',
+    excerpt: 'Sydney has dozens of clinics and academies offering free lashes, facials, injectables and more through model calls. We cover the best ways to find them, and how to book safely.',
     date: '11 Mar 2026',
     category: 'City Guides',
     readMin: 6,
@@ -46,13 +46,13 @@ export default function BlogIndex() {
   return (
     <>
       <Head>
-        <title>Blog — Model Call | Free Beauty Treatment Tips & Guides</title>
+        <title>Blog | Model Call | Free Beauty Treatment Tips & Guides</title>
         <meta name="description" content="Tips, guides, and city-by-city coverage of free and discounted beauty treatments across Australia. Learn about model calls, beauty modelling, and more." />
         <link rel="canonical" href="https://modelcall.app/blog" />
-        <meta property="og:title" content="Blog — Model Call" />
+        <meta property="og:title" content="Blog | Model Call" />
         <meta property="og:description" content="Tips, guides, and city-by-city coverage of free beauty treatments in Australia." />
         <meta property="og:url" content="https://modelcall.app/blog" />
-        <meta name="twitter:title" content="Blog — Model Call" />
+        <meta name="twitter:title" content="Blog | Model Call" />
         <meta name="twitter:description" content="Free beauty treatment tips, guides, and city coverage." />
         <script
           type="application/ld+json"

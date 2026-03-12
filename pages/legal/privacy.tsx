@@ -8,10 +8,10 @@ export default function PrivacyPolicy() {
   return (
     <>
       <Head>
-        <title>Privacy Policy — Model Call</title>
-        <meta name="description" content="Model Call privacy policy — how we collect, use, and protect your personal information in accordance with Australian Privacy Act 1988." />
+        <title>Privacy Policy | Model Call</title>
+        <meta name="description" content="Model Call privacy policy: how we collect, use, and protect your personal information in accordance with Australian Privacy Act 1988." />
         <link rel="canonical" href="https://modelcall.app/legal/privacy" />
-        <meta property="og:title" content="Privacy Policy — Model Call" />
+        <meta property="og:title" content="Privacy Policy | Model Call" />
         <meta property="og:url" content="https://modelcall.app/legal/privacy" />
       </Head>
 
@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
             <ul className="list-disc ml-5 space-y-1">
               <li>Name and email address (when you create an account)</li>
               <li>Business details including name, address, and ABN (for business owners)</li>
-              <li>Payment information (processed and stored securely by Stripe — we do not store raw card numbers)</li>
+              <li>Payment information (processed and stored securely by Stripe; we do not store raw card numbers)</li>
               <li>Profile information such as Instagram handle, bio, and service details</li>
               <li>Booking history and reviews</li>
             </ul>

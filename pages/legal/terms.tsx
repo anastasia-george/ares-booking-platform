@@ -8,10 +8,10 @@ export default function Terms() {
   return (
     <>
       <Head>
-        <title>Terms of Service — Model Call</title>
-        <meta name="description" content="Model Call terms of service — the rules governing use of Australia's beauty model call platform." />
+        <title>Terms of Service | Model Call</title>
+        <meta name="description" content="Model Call terms of service: the rules governing use of Australia's beauty model call platform." />
         <link rel="canonical" href="https://modelcall.app/legal/terms" />
-        <meta property="og:title" content="Terms of Service — Model Call" />
+        <meta property="og:title" content="Terms of Service | Model Call" />
         <meta property="og:url" content="https://modelcall.app/legal/terms" />
       </Head>
 

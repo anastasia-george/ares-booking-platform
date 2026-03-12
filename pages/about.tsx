@@ -6,11 +6,11 @@ export default function About() {
   return (
     <>
       <Head>
-        <title>About Us — Model Call | Australia&apos;s Beauty Model Call Platform</title>
-        <meta name="description" content="Learn about Model Call — Australia's marketplace connecting beauty students and clinics with models for free and discounted treatments. Our mission, values, and story." />
+        <title>About Us | Model Call | Australia&apos;s Beauty Model Call Platform</title>
+        <meta name="description" content="Learn about Model Call, Australia's marketplace connecting beauty students and clinics with models for free and discounted treatments. Our mission, values, and story." />
         <link rel="canonical" href="https://modelcall.app/about" />
-        <meta property="og:title" content="About Model Call — Australia's Beauty Model Call Platform" />
-        <meta property="og:description" content="Learn about Model Call — connecting beauty students and clinics with models for free and discounted treatments." />
+        <meta property="og:title" content="About Model Call | Australia's Beauty Model Call Platform" />
+        <meta property="og:description" content="Learn about Model Call, connecting beauty students and clinics with models for free and discounted treatments." />
         <meta property="og:url" content="https://modelcall.app/about" />
         <meta name="twitter:title" content="About Model Call" />
         <meta name="twitter:description" content="The story behind Australia's beauty model call platform." />
@@ -37,13 +37,13 @@ export default function About() {
             <div>
               <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#0D9488' }}>Our mission</span>
               <h2 className="text-3xl font-extrabold mt-2 mb-6" style={{ color: '#0F172A' }}>
-                Make beauty accessible — and talent unstoppable.
+                Make beauty accessible and talent unstoppable.
               </h2>
               <p className="text-base leading-relaxed mb-4" style={{ color: '#64748B' }}>
                 Every week across Australia, beauty schools run training days that go unfilled. Clinics have quiet Tuesday afternoons. Students need practice hours before they can graduate. Meanwhile, people scroll Instagram wishing they could afford the treatment they keep seeing.
               </p>
               <p className="text-base leading-relaxed" style={{ color: '#64748B' }}>
-                Model Call closes that gap. We give businesses and academies a frictionless way to fill their books, and give everyday Australians access to professional treatments — for free or at a fraction of the retail price.
+                Model Call closes that gap. We give businesses and academies a frictionless way to fill their books, and give everyday Australians access to professional treatments for free or at a fraction of the retail price.
               </p>
             </div>
             <div className="rounded-2xl p-10 text-center" style={{ backgroundColor: '#0F172A' }}>
@@ -85,7 +85,7 @@ export default function About() {
       <section className="py-20 text-center px-4" style={{ backgroundColor: '#F8FAFC' }}>
         <h2 className="text-3xl font-extrabold mb-4" style={{ color: '#0F172A' }}>Join the community</h2>
         <p className="text-base mb-8 max-w-md mx-auto" style={{ color: '#64748B' }}>
-          Whether you&rsquo;re looking for your next glam session or want to fill your chairs — Model Call is the place to be.
+          Whether you&rsquo;re looking for your next glam session or want to fill your chairs, Model Call is the place to be.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/#browse"

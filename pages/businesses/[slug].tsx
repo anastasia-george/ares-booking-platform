@@ -179,13 +179,13 @@ export default function BusinessProfilePage({ business }: Props) {
   return (
     <>
       <Head>
-        <title>{business.name} — Free & Discounted {firstCat ?? 'Beauty'} Treatments | Model Call</title>
+        <title>{business.name} | Free & Discounted {firstCat ?? 'Beauty'} Treatments | Model Call</title>
         <meta name="description" content={business.bio ?? `Book a free or discounted ${firstCat ?? 'beauty'} treatment with ${business.name} in ${[business.suburb, business.state].filter(Boolean).join(', ') || 'Australia'}. Verified clinic on Model Call.`} />
         <link rel="canonical" href={`https://modelcall.app/businesses/${business.slug}`} />
-        <meta property="og:title" content={`${business.name} — Model Call`} />
+        <meta property="og:title" content={`${business.name} | Model Call`} />
         <meta property="og:description" content={`Book ${firstCat ?? 'beauty'} treatments with ${business.name}. ${lowestSvc?.price === 0 ? 'FREE sessions available.' : `From $${lowestSvc ? (lowestSvc.price / 100).toFixed(0) : '0'}.`}`} />
         <meta property="og:url" content={`https://modelcall.app/businesses/${business.slug}`} />
-        <meta name="twitter:title" content={`${business.name} — Model Call`} />
+        <meta name="twitter:title" content={`${business.name} | Model Call`} />
         <meta name="twitter:description" content={`${firstCat ?? 'Beauty'} model call in ${[business.suburb, business.state].filter(Boolean).join(', ') || 'Australia'}.`} />
         <script
           type="application/ld+json"
@@ -599,7 +599,7 @@ export default function BusinessProfilePage({ business }: Props) {
                       >
                         {business.services.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.name} — {s.price === 0 ? 'FREE' : `$${(s.price / 100).toFixed(0)}`} ({s.durationMin} min)
+                            {s.name}: {s.price === 0 ? 'FREE' : `$${(s.price / 100).toFixed(0)}`} ({s.durationMin} min)
                           </option>
                         ))}
                       </select>

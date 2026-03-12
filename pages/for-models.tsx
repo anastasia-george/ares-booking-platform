@@ -6,7 +6,7 @@ const BENEFITS = [
   {
     icon: '💸',
     title: 'Save hundreds every year',
-    desc: 'Access professional-grade treatments — lashes, injectables, facials, hair — at free or deeply discounted prices.',
+    desc: 'Access professional-grade treatments like lashes, injectables, facials, and hair at free or deeply discounted prices.',
   },
   {
     icon: '🎓',
@@ -58,14 +58,14 @@ export default function ForModels() {
   return (
     <>
       <Head>
-        <title>For Models — Free Beauty Treatments Australia | Model Call</title>
-        <meta name="description" content="Book free and discounted beauty treatments across Australia. Find model calls for lashes, injectables, facials, nails, hair and more — no experience needed, zero booking fees." />
+        <title>For Models: Free Beauty Treatments Australia | Model Call</title>
+        <meta name="description" content="Book free and discounted beauty treatments across Australia. Find model calls for lashes, injectables, facials, nails, hair and more, no experience needed, zero booking fees." />
         <link rel="canonical" href="https://modelcall.app/for-models" />
-        <meta property="og:title" content="For Models — Free Beauty Treatments Australia" />
-        <meta property="og:description" content="Book free and discounted beauty treatments. Lashes, injectables, facials, nails, hair — no experience needed." />
+        <meta property="og:title" content="For Models: Free Beauty Treatments Australia" />
+        <meta property="og:description" content="Book free and discounted beauty treatments. Lashes, injectables, facials, nails, hair. No experience needed." />
         <meta property="og:url" content="https://modelcall.app/for-models" />
-        <meta name="twitter:title" content="For Models — Free Beauty Treatments" />
-        <meta name="twitter:description" content="Book free and discounted beauty treatments across Australia — no experience needed." />
+        <meta name="twitter:title" content="For Models: Free Beauty Treatments" />
+        <meta name="twitter:description" content="Book free and discounted beauty treatments across Australia, no experience needed." />
         <meta name="keywords" content="free beauty treatments, beauty model, model call, free lashes, free facials, free injectables, discounted beauty, beauty model Australia" />
       </Head>
 
@@ -79,7 +79,7 @@ export default function ForModels() {
           Look amazing. <span style={{ color: '#0D9488' }}>Pay less.</span><br />Support beauty talent.
         </h1>
         <p className="mt-6 text-lg max-w-2xl mx-auto" style={{ color: '#94A3B8' }}>
-          Model Call connects you with clinics, academies, and students who need real people for training and portfolio shoots — at free or discounted rates.
+          Model Call connects you with clinics, academies, and students who need real people for training and portfolio shoots at free or discounted rates.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/#browse"
@@ -166,7 +166,7 @@ export default function ForModels() {
       <section className="py-20 bg-white text-center px-4">
         <h2 className="text-3xl font-extrabold mb-4" style={{ color: '#0F172A' }}>Ready to find your next call?</h2>
         <p className="text-base mb-8 max-w-md mx-auto" style={{ color: '#64748B' }}>
-          Browse hundreds of free and discounted treatments right now — no account needed to look.
+          Browse hundreds of free and discounted treatments right now, no account needed to look.
         </p>
         <Link href="/#browse"
           className="inline-block px-10 py-4 rounded-xl font-semibold text-white text-base transition hover:opacity-90"

@@ -19,7 +19,7 @@ const SECTIONS = [
     heading: 'For Businesses',
     items: [
       { q: 'How do I get listed?', a: 'Click "List a Service" in the navigation and complete the onboarding wizard. It takes about 5 minutes. We\'ll review and approve your listing within 1 business day.' },
-      { q: 'What does it cost?', a: 'Model Call is free to list during our launch period. A small platform fee will apply when we introduce paid tiers — businesses who join now will be offered early-adopter pricing.' },
+      { q: 'What does it cost?', a: 'Model Call is free to list during our launch period. A small platform fee will apply when we introduce paid tiers; businesses who join now will be offered early-adopter pricing.' },
       { q: 'Can I list multiple services?', a: 'Yes. From your business dashboard you can add as many services as you like. Each can have its own price, duration, category, and availability schedule.' },
       { q: 'How are no-show fees handled?', a: "Models add a card on file at the time of booking. If a model doesn't show up, you can trigger a no-show charge from your dashboard up to the maximum amount you set in your cancellation policy." },
       { q: 'Can I choose which models book with me?', a: 'Currently all listings are instant-book. Approval-gated bookings (where you review model profiles before confirming) are on our near-term roadmap.' },
@@ -29,7 +29,7 @@ const SECTIONS = [
   {
     heading: 'Payments & Cancellations',
     items: [
-      { q: 'How do payments work for paid sessions?', a: 'For discounted sessions, models pay a deposit at the time of booking. The remainder (if any) is settled at your discretion. Free sessions require a card on file only — no charge is made unless there is a no-show.' },
+      { q: 'How do payments work for paid sessions?', a: 'For discounted sessions, models pay a deposit at the time of booking. The remainder (if any) is settled at your discretion. Free sessions require a card on file only, and no charge is made unless there is a no-show.' },
       { q: 'What payment methods are accepted?', a: 'All major credit and debit cards via Stripe. Apple Pay and Google Pay are supported on compatible devices.' },
       { q: 'Is my card information safe?', a: 'Yes. Model Call never stores your raw card details. All payment data is processed and stored by Stripe, a PCI-compliant payment processor.' },
       { q: 'Can I get a refund?', a: 'Refunds are handled on a case-by-case basis. If a business cancels your booking or the service was materially different from what was advertised, contact our support team and we\'ll investigate.' },
@@ -60,14 +60,14 @@ export default function FAQ() {
   return (
     <>
       <Head>
-        <title>FAQ — Model Call | Free Beauty Treatments Australia</title>
-        <meta name="description" content="Frequently asked questions about Model Call — how to book free beauty treatments, business listings, payments, cancellations, and safety. Everything you need to know." />
+        <title>FAQ | Model Call | Free Beauty Treatments Australia</title>
+        <meta name="description" content="Frequently asked questions about Model Call: how to book free beauty treatments, business listings, payments, cancellations, and safety. Everything you need to know." />
         <link rel="canonical" href="https://modelcall.app/faq" />
-        <meta property="og:title" content="FAQ — Model Call" />
+        <meta property="og:title" content="FAQ | Model Call" />
         <meta property="og:description" content="Everything you need to know about booking free beauty treatments and listing your business on Model Call." />
         <meta property="og:url" content="https://modelcall.app/faq" />
-        <meta name="twitter:title" content="FAQ — Model Call" />
-        <meta name="twitter:description" content="Frequently asked questions about Model Call — for models, businesses, and payments." />
+        <meta name="twitter:title" content="FAQ | Model Call" />
+        <meta name="twitter:description" content="Frequently asked questions about Model Call, for models, businesses, and payments." />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

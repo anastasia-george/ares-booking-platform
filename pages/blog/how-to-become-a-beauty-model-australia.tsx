@@ -7,7 +7,7 @@ export default function HowToBecomeABeautyModel() {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: 'How to Become a Beauty Model in Australia',
-    description: 'A step-by-step guide to becoming a beauty model in Australia — no experience or agency needed. Learn what beauty modelling involves and where to find opportunities.',
+    description: 'A step-by-step guide to becoming a beauty model in Australia, no experience or agency needed. Learn what beauty modelling involves and where to find opportunities.',
     datePublished: '2026-03-11',
     dateModified: '2026-03-11',
     author: { '@type': 'Organization', name: 'Model Call', url: 'https://modelcall.app' },
@@ -26,7 +26,7 @@ export default function HowToBecomeABeautyModel() {
         <meta property="og:url" content="https://modelcall.app/blog/how-to-become-a-beauty-model-australia" />
         <meta property="og:type" content="article" />
         <meta name="twitter:title" content="How to Become a Beauty Model in Australia" />
-        <meta name="twitter:description" content="No experience needed — start getting free beauty treatments today." />
+        <meta name="twitter:description" content="No experience needed. Start getting free beauty treatments today." />
         <meta name="keywords" content="how to become a beauty model, beauty model Australia, beauty model no experience, beauty modelling, model call Australia, free beauty treatments, beauty model jobs" />
         <script
           type="application/ld+json"
@@ -53,7 +53,7 @@ export default function HowToBecomeABeautyModel() {
         <article className="max-w-3xl mx-auto px-4 space-y-8 text-base leading-relaxed" style={{ color: '#334155' }}>
 
           <p className="text-lg" style={{ color: '#475569' }}>
-            If you&rsquo;ve ever seen a &ldquo;models wanted&rdquo; post and assumed it wasn&rsquo;t for you — think again. <strong>Beauty modelling</strong> in Australia doesn&rsquo;t require a portfolio, an agency, or any professional experience. It simply means you&rsquo;re the person receiving a treatment while a practitioner trains, practises, or builds their portfolio. And in most cases, you get it for free.
+            If you&rsquo;ve ever seen a &ldquo;models wanted&rdquo; post and assumed it wasn&rsquo;t for you? Think again. <strong>Beauty modelling</strong> in Australia doesn&rsquo;t require a portfolio, an agency, or any professional experience. It simply means you&rsquo;re the person receiving a treatment while a practitioner trains, practises, or builds their portfolio. And in most cases, you get it for free.
           </p>
 
           <h2 className="text-2xl font-extrabold pt-4" style={{ color: '#0F172A' }}>What does a beauty model actually do?</h2>
@@ -68,7 +68,7 @@ export default function HowToBecomeABeautyModel() {
 
           <h3 className="text-xl font-bold pt-2" style={{ color: '#0F172A' }}>1. Create a free account on Model Call</h3>
           <p>
-            <Link href="/" className="font-semibold underline" style={{ color: '#0D9488' }}>Model Call</Link> is Australia&rsquo;s marketplace for beauty model calls. Sign up with your email — no credit card needed unless you book a paid session. Once you&rsquo;re in, you can browse all available model calls by suburb, category, and price.
+            <Link href="/" className="font-semibold underline" style={{ color: '#0D9488' }}>Model Call</Link> is Australia&rsquo;s marketplace for beauty model calls. Sign up with your email, no credit card needed unless you book a paid session. Once you&rsquo;re in, you can browse all available model calls by suburb, category, and price.
           </p>
 
           <h3 className="text-xl font-bold pt-2" style={{ color: '#0F172A' }}>2. Browse treatments near you</h3>
@@ -83,24 +83,24 @@ export default function HowToBecomeABeautyModel() {
 
           <h3 className="text-xl font-bold pt-2" style={{ color: '#0F172A' }}>4. Show up and enjoy</h3>
           <p>
-            Arrive at the clinic or academy at your booked time. Be cooperative, follow instructions, and enjoy your treatment. After your session, you&rsquo;ll receive a prompt to leave a review — this helps other models and helps the practitioner build their reputation.
+            Arrive at the clinic or academy at your booked time. Be cooperative, follow instructions, and enjoy your treatment. After your session, you&rsquo;ll receive a prompt to leave a review, which helps other models and helps the practitioner build their reputation.
           </p>
 
           <h3 className="text-xl font-bold pt-2" style={{ color: '#0F172A' }}>5. Repeat</h3>
           <p>
-            Many models book multiple sessions per month. It&rsquo;s an incredible way to access treatments that would normally cost $100–$500+ — for free. The more you book and review, the more the community grows.
+            Many models book multiple sessions per month. It&rsquo;s an incredible way to access treatments that would normally cost $100–$500+ for free. The more you book and review, the more the community grows.
           </p>
 
           <h2 className="text-2xl font-extrabold pt-4" style={{ color: '#0F172A' }}>What treatments can beauty models get?</h2>
           <ul className="list-disc ml-6 space-y-2">
-            <li><strong>Lash extensions</strong> — classic, hybrid, volume, mega volume</li>
-            <li><strong>Brows</strong> — lamination, tinting, microblading, ombré powder brows</li>
-            <li><strong>Injectables</strong> — anti-wrinkle, lip filler, cheek filler (always supervised)</li>
-            <li><strong>Facials</strong> — hydrafacials, LED, chemical peels, microdermabrasion</li>
-            <li><strong>Hair</strong> — colour, highlights, balayage, keratin treatments, cuts</li>
-            <li><strong>Nails</strong> — gel, acrylic, BIAB, nail art</li>
-            <li><strong>Massage</strong> — remedial, Swedish, hot stone</li>
-            <li><strong>Waxing &amp; laser</strong> — bikini, underarm, full body</li>
+            <li><strong>Lash extensions:</strong> classic, hybrid, volume, mega volume</li>
+            <li><strong>Brows:</strong> lamination, tinting, microblading, ombré powder brows</li>
+            <li><strong>Injectables:</strong> anti-wrinkle, lip filler, cheek filler (always supervised)</li>
+            <li><strong>Facials:</strong> hydrafacials, LED, chemical peels, microdermabrasion</li>
+            <li><strong>Hair:</strong> colour, highlights, balayage, keratin treatments, cuts</li>
+            <li><strong>Nails:</strong> gel, acrylic, BIAB, nail art</li>
+            <li><strong>Massage:</strong> remedial, Swedish, hot stone</li>
+            <li><strong>Waxing &amp; laser:</strong> bikini, underarm, full body</li>
           </ul>
 
           <h2 className="text-2xl font-extrabold pt-4" style={{ color: '#0F172A' }}>Is it safe?</h2>
@@ -122,7 +122,7 @@ export default function HowToBecomeABeautyModel() {
 
           <h2 className="text-2xl font-extrabold pt-4" style={{ color: '#0F172A' }}>Ready to start?</h2>
           <p>
-            <Link href="/#browse" className="font-semibold underline" style={{ color: '#0D9488' }}>Browse available model calls</Link> right now. No sign-up needed to look — create an account when you&rsquo;re ready to book.
+            <Link href="/#browse" className="font-semibold underline" style={{ color: '#0D9488' }}>Browse available model calls</Link> right now. No sign-up needed to look. Create an account when you&rsquo;re ready to book.
           </p>
         </article>
       </section>

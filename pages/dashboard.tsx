@@ -18,7 +18,7 @@ export default function Dashboard({ businessId, businessName, ownerEmail }: Prop
   return (
       <div className="min-h-screen" style={{ backgroundColor: '#F8FAFC' }}>
       <Head>
-        <title>{businessName} — Dashboard | Model Call</title>
+        <title>{businessName} | Dashboard | Model Call</title>
       </Head>
 
       {/* Dashboard nav banner */}

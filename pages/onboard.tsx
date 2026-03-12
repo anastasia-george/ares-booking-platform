@@ -75,7 +75,7 @@ export default function OnboardPage() {
       });
       if (!sr.ok) { const d = await sr.json(); setError(d.error ?? 'Failed'); return; }
       setStep(TOTAL_STEPS + 1);
-    } catch { setError('Network error — please try again'); }
+    } catch { setError('Network error, please try again'); }
     finally { setSaving(false); }
   };
 
@@ -248,7 +248,7 @@ export default function OnboardPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Model call price — enter 0 for FREE</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Model call price: enter 0 for FREE</p>
                     <div className="flex items-baseline border-b-2 border-gray-200 focus-within:border-teal-600 transition-colors">
                       <span className="text-2xl text-gray-300 mr-2">$</span>
                       <input type="number" min={0} value={form.modelPrice}

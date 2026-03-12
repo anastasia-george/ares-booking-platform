@@ -48,7 +48,7 @@ export default function SignIn() {
   return (
     <>
       <Head>
-        <title>Sign In — Model Call</title>
+        <title>Sign In | Model Call</title>
       </Head>
 
       {/* Full-screen split layout — overrides the pt-16 from _app.tsx */}
@@ -79,7 +79,7 @@ export default function SignIn() {
           {/* Bottom quote */}
           <div className="relative z-10 p-10">
             <blockquote className="text-white/90 text-lg font-medium leading-relaxed mb-4">
-              &ldquo;I got a full balayage for free at a top Sydney salon. The results were incredible — I&rsquo;ve been going back as a paying client ever since.&rdquo;
+              &ldquo;I got a full balayage for free at a top Sydney salon. The results were incredible and I&rsquo;ve been going back as a paying client ever since.&rdquo;
             </blockquote>
             <div className="flex items-center gap-3">
               <img src="https://i.pravatar.cc/48?img=47" alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white/30" />
@@ -115,7 +115,7 @@ export default function SignIn() {
                 </p>
                 <p className="text-[14px] font-bold text-[#0F172A] mb-8">{email}</p>
                 <p className="text-[13px] text-[#94A3B8] mb-8 leading-relaxed">
-                  Click the link in the email to sign in — no password needed. Check your spam folder if it doesn&rsquo;t arrive within a minute.
+                  Click the link in the email to sign in. No password needed. Check your spam folder if it doesn&rsquo;t arrive within a minute.
                 </p>
                 <button
                   onClick={() => setSubmitted(false)}

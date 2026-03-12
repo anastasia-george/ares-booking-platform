@@ -297,13 +297,13 @@ export default function Home({ listings: ssrListings }: Props) {
   return (
     <>
     <Head>
-      <title>Model Call — Free &amp; Discounted Beauty Treatments in Australia</title>
-      <meta name="description" content="Book free and discounted beauty treatments at verified clinics across Australia. Find model calls for lashes, facials, injectables, hair, nails and more — zero booking fees." />
+      <title>Model Call | Free &amp; Discounted Beauty Treatments in Australia</title>
+      <meta name="description" content="Book free and discounted beauty treatments at verified clinics across Australia. Find model calls for lashes, facials, injectables, hair, nails and more. Zero booking fees." />
       <link rel="canonical" href="https://modelcall.app" />
-      <meta property="og:title" content="Model Call — Free & Discounted Beauty Treatments in Australia" />
+      <meta property="og:title" content="Model Call | Free & Discounted Beauty Treatments in Australia" />
       <meta property="og:description" content="Book free and discounted beauty treatments at verified clinics across Australia. Lashes, facials, injectables, hair, nails and more." />
       <meta property="og:url" content="https://modelcall.app" />
-      <meta name="twitter:title" content="Model Call — Free & Discounted Beauty Treatments" />
+      <meta name="twitter:title" content="Model Call | Free & Discounted Beauty Treatments" />
       <meta name="twitter:description" content="Australia’s beauty model call platform. Book free or discounted treatments at top clinics." />
       <meta name="keywords" content="model call, free beauty treatments Australia, discounted beauty treatments, beauty model call, free lashes Sydney, free facials, free injectables, beauty model booking" />
       <script
@@ -343,7 +343,7 @@ export default function Home({ listings: ssrListings }: Props) {
           </h1>
 
           <p className="text-[17px] text-white/65 mb-10 max-w-lg mx-auto leading-relaxed">
-            Book with top clinics seeking models for hair, skin, lashes &amp; more — at a fraction of the price.
+            Book with top clinics seeking models for hair, skin, lashes &amp; more, at a fraction of the price.
           </p>
 
           {/* ── HERO SEARCH PILL ── */}
@@ -669,7 +669,7 @@ export default function Home({ listings: ssrListings }: Props) {
             {
               icon: <Sparkles className="w-6 h-6 text-[#0D9488]" strokeWidth={1.75} />,
               title: 'World-class treatments',
-              desc:  'Access elite clinics that would normally cost hundreds — vetted and verified.',
+              desc:  'Access elite clinics that would normally cost hundreds, vetted and verified.',
             },
             {
               icon: <Star className="w-6 h-6 text-[#0D9488]" strokeWidth={1.75} />,
@@ -679,7 +679,7 @@ export default function Home({ listings: ssrListings }: Props) {
             {
               icon: <Heart className="w-6 h-6 text-[#0D9488]" strokeWidth={1.75} />,
               title: 'Zero fees, always',
-              desc:  'We never charge models a booking fee. What you see is what you pay — often nothing.',
+              desc:  'We never charge models a booking fee. What you see is what you pay, and often that\'s nothing.',
             },
           ].map((item) => (
             <div key={item.title} className="flex flex-col items-center gap-4">

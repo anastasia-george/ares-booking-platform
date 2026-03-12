@@ -91,7 +91,7 @@ export default function MyBookings() {
 
   return (
     <>
-      <Head><title>My Bookings — Model Call</title></Head>
+      <Head><title>My Bookings | Model Call</title></Head>
 
       {/* Page hero */}
       <div className="relative overflow-hidden" style={{ backgroundColor: '#0F172A' }}>
@@ -202,7 +202,7 @@ export default function MyBookings() {
                         )
                       )}
                       {booking.status === 'COMPLETED' && booking.review && (
-                        <p className="mt-3 text-xs font-semibold" style={{ color: '#0D9488' }}>✓ Review submitted — thank you!</p>
+                        <p className="mt-3 text-xs font-semibold" style={{ color: '#0D9488' }}>✓ Review submitted, thank you!</p>
                       )}
                     </div>
                   </div>

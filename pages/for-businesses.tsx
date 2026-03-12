@@ -11,7 +11,7 @@ const BENEFITS = [
   {
     icon: '📲',
     title: 'Zero admin overhead',
-    desc: 'List in minutes. Models self-book, receive confirmations, and are reminded automatically — all without a single DM.',
+    desc: 'List in minutes. Models self-book, receive confirmations, and are reminded automatically, all without a single DM.',
   },
   {
     icon: '⭐',
@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: 'What does it cost to list?',
-    a: 'Model Call is free during our launch period. A small platform fee will apply when we introduce paid tiers — existing businesses will be grandfathered in.',
+    a: 'Model Call is free during our launch period. A small platform fee will apply when we introduce paid tiers; existing businesses will be grandfathered in.',
   },
   {
     q: 'Can I list multiple services?',
@@ -50,7 +50,7 @@ const FAQS = [
   },
   {
     q: 'How do no-show fees work?',
-    a: "Models provide a card on file at booking. If they don't show, you can trigger a charge from your dashboard — up to the maximum fee you set in your policy.",
+    a: "Models provide a card on file at booking. If they don't show, you can trigger a charge from your dashboard, up to the maximum fee you set in your policy."
   },
   {
     q: 'Can I approve models before they book?',
@@ -62,13 +62,13 @@ export default function ForBusinesses() {
   return (
     <>
       <Head>
-        <title>For Beauty Businesses — List Model Calls Free | Model Call</title>
+        <title>For Beauty Businesses: List Model Calls Free | Model Call</title>
         <meta name="description" content="Fill empty chairs, run student training days, and build your clinic's reputation. List model calls for free on Australia's leading beauty model booking platform." />
         <link rel="canonical" href="https://modelcall.app/for-businesses" />
-        <meta property="og:title" content="For Beauty Businesses — List Model Calls Free" />
+        <meta property="og:title" content="For Beauty Businesses: List Model Calls Free" />
         <meta property="og:description" content="Fill empty chairs and build your reputation. List model calls for free on Australia's beauty booking platform." />
         <meta property="og:url" content="https://modelcall.app/for-businesses" />
-        <meta name="twitter:title" content="For Businesses — Model Call" />
+        <meta name="twitter:title" content="For Businesses | Model Call" />
         <meta name="twitter:description" content="List model calls for free and fill your chairs with motivated models." />
         <meta name="keywords" content="beauty business model call, list beauty service, beauty student training models, beauty academy model call, fill empty chairs clinic" />
       </Head>
@@ -83,7 +83,7 @@ export default function ForBusinesses() {
           Fill your seats.<br /><span style={{ color: '#0D9488' }}>Grow your brand.</span>
         </h1>
         <p className="mt-6 text-lg max-w-2xl mx-auto" style={{ color: '#94A3B8' }}>
-          Model Call makes it effortless to attract motivated models for training days, student assessments, and portfolio shoots — with zero DMs required.
+          Model Call makes it effortless to attract motivated models for training days, student assessments, and portfolio shoots, with zero DMs required.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/onboard"
@@ -128,7 +128,7 @@ export default function ForBusinesses() {
           <div className="space-y-6">
             {[
               { step: '01', title: 'List your business', desc: 'Complete the onboarding wizard with your business name, location, and first service. Takes about 5 minutes.' },
-              { step: '02', title: 'Set your availability', desc: 'Define your open time slots. Models browse and claim spots in real time — no back-and-forth needed.' },
+              { step: '02', title: 'Set your availability', desc: 'Define your open time slots. Models browse and claim spots in real time, no back-and-forth needed.' },
               { step: '03', title: 'Show up and deliver', desc: 'Models arrive, you do your thing, and reviews roll in automatically after each session.' },
             ].map((s) => (
               <div key={s.step} className="flex gap-6 items-start rounded-2xl p-6 border border-gray-100" style={{ backgroundColor: '#F8FAFC' }}>
